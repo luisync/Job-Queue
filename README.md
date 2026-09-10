@@ -23,7 +23,7 @@ erDiagram
       timestamp updated_at
       timestamp created_at
   }
-  jobs ||--o{ job_results : has
+  jobs ||--o| job_results : has
   jobs {
       uuid id PK
       uuid creator_id FK
@@ -36,8 +36,8 @@ erDiagram
   }
   job_results {
       uuid id PK
-      uuid job_id FK
-      string result
+      uuid job_id FK "Unique"
+      string output
       timestamp created_at
   }
 ```
