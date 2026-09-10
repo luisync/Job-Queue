@@ -12,8 +12,8 @@ The client makes a request regarding a job. The database is updated and the API 
 
 ```mermaid
 erDiagram
-  USERS ||--o{ JOBS : creates
-  USERS {
+  users ||--o{ jobs : creates
+  users {
       uuid id PK
       string first_name
       string last_name
@@ -23,15 +23,21 @@ erDiagram
       timestamp updated_at
       timestamp created_at
   }
-  JOBS {
+  jobs ||--o| job_results : has
+  jobs {
       uuid id PK
-      uuid author_id FK
+      uuid creator_id FK
       enum language "['javascript', 'python']"
       string dependencies
-      string code
-      string result
-      enum status "['idle', 'running', 'completed']"
+      string function
+      enum status "['pending', 'running', 'completed', 'failed']"
       timestamp updated_at
+      timestamp created_at
+  }
+  job_results {
+      uuid id PK
+      uuid job_id FK "Unique"
+      string output
       timestamp created_at
   }
 ```
