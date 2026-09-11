@@ -49,3 +49,7 @@ Users want to minimize the utilisation of their machine to provide a more respon
 ## How This Application Offers A Solution
 
 This application tackles the problem by offering users a way to delegate jobs to an external machine through an API and later receive the result of its execution.
+
+# Technologies
+- JIRA; sprint planning.
+- Confluence; project overview and documentation.
