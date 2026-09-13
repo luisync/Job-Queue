@@ -11,6 +11,7 @@ import (
 )
 
 type Querier interface {
+	CreateJob(ctx context.Context, arg CreateJobParams) (Job, error)
 	FindJobByID(ctx context.Context, id pgtype.UUID) (Job, error)
 	ListJobs(ctx context.Context) ([]Job, error)
 }

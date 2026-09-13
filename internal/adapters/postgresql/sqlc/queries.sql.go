@@ -11,6 +11,50 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const createJob = `-- name: CreateJob :one
+INSERT INTO jobs (
+    creator_id, 
+    language, 
+    dependencies, 
+    function
+)
+VALUES (
+    $1, 
+    $2, 
+    $3, 
+    $4
+) 
+RETURNING id, creator_id, language, dependencies, function, status, updated_at, created_at
+`
+
+type CreateJobParams struct {
+	CreatorID    pgtype.UUID `json:"creator_id"`
+	Language     JobLanguage `json:"language"`
+	Dependencies string      `json:"dependencies"`
+	Function     string      `json:"function"`
+}
+
+func (q *Queries) CreateJob(ctx context.Context, arg CreateJobParams) (Job, error) {
+	row := q.db.QueryRow(ctx, createJob,
+		arg.CreatorID,
+		arg.Language,
+		arg.Dependencies,
+		arg.Function,
+	)
+	var i Job
+	err := row.Scan(
+		&i.ID,
+		&i.CreatorID,
+		&i.Language,
+		&i.Dependencies,
+		&i.Function,
+		&i.Status,
+		&i.UpdatedAt,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const findJobByID = `-- name: FindJobByID :one
 SELECT id, creator_id, language, dependencies, function, status, updated_at, created_at 
 FROM jobs 
