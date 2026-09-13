@@ -27,8 +27,8 @@ func (h *handler) ListJobs(w http.ResponseWriter, r *http.Request) {
 	jobs, err := h.service.ListJobs(r.Context())
 	if err != nil {
 		log.Println(err)
-
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	json.Write(w, http.StatusOK, jobs)
@@ -42,16 +42,52 @@ func (h *handler) FindJob(w http.ResponseWriter, r *http.Request) {
 	// Convert string into UUID.
 	var jobID pgtype.UUID
 	if err := jobID.Scan(jobIDStr); err != nil {
+		log.Println(err)
 		http.Error(w, "Invalid job ID format", http.StatusBadRequest)
+		return
 	}
 
 	// Find the job with the UUID.
 	job, err := h.service.FindJob(r.Context(), jobID)
 	if err != nil {
 		log.Println(err)
-
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	json.Write(w, http.StatusOK, job)
+}
+
+// Create a new job.
+func (h *handler) CreateJob(w http.ResponseWriter, r *http.Request) {
+	// Extract the new job's contents from the request.
+	var newJob createJobParams
+	if err := json.Read(r, &newJob); err != nil {
+		log.Println(err)
+		http.Error(w, "Please include the correct fields.", http.StatusBadRequest)
+		return
+	}
+
+	// Validade payload.
+	switch {
+	case len(newJob.Function) == 0:
+		log.Println("Missing function.")
+		http.Error(w, "Please include a function.", http.StatusBadRequest)
+		return
+
+	case len(newJob.Language) == 0:
+		log.Println("Missing language.")
+		http.Error(w, "Please include a language.", http.StatusBadRequest)
+		return
+	}
+
+	// Create the new job.
+	createdJob, err := h.service.CreateJob(r.Context(), newJob)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	json.Write(w, http.StatusCreated, createdJob)
 }

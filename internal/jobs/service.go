@@ -11,6 +11,7 @@ import (
 type Service interface {
 	ListJobs(ctx context.Context) ([]repo.Job, error)
 	FindJob(ctx context.Context, jobID pgtype.UUID) (repo.Job, error)
+	CreateJob(ctx context.Context, newJob createJobParams) (repo.Job, error)
 }
 
 // Services depend on the repository.
@@ -31,4 +32,14 @@ func (s *svc) ListJobs(ctx context.Context) ([]repo.Job, error) {
 // Find a job by ID.
 func (s *svc) FindJob(ctx context.Context, jobID pgtype.UUID) (repo.Job, error) {
 	return s.repo.FindJobByID(ctx, jobID)
+}
+
+// Create a job.
+func (s *svc) CreateJob(ctx context.Context, newJob createJobParams) (repo.Job, error) {
+	return s.repo.CreateJob(ctx, repo.CreateJobParams{
+		CreatorID:    newJob.CreatorID,
+		Language:     newJob.Language,
+		Dependencies: newJob.Dependencies,
+		Function:     newJob.Function,
+	})
 }

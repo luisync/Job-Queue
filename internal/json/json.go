@@ -14,3 +14,13 @@ func Write(w http.ResponseWriter, status int, data any) {
 	// Write the jobs to the user in a JSON format.
 	json.NewEncoder(w).Encode(data)
 }
+
+// Read JSON data sent in the body of a request.
+func Read(r *http.Request, data any) error {
+	// Decode the reader.
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+
+	// Store the decoded content.
+	return decoder.Decode(data)
+}
