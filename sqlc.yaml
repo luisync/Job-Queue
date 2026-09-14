@@ -10,3 +10,8 @@ sql:
         sql_package: "pgx/v5"
         emit_json_tags: true
         emit_interface: true # generates a querier interface
+        overrides:
+          - column: "sessions.expires_at"
+            go_type: "time.Time"
+          - column: "sessions.created_at"
+            go_type: "time.Time"

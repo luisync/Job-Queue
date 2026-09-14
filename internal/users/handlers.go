@@ -1,0 +1,263 @@
+package users
+
+import (
+	"log"
+	"net/http"
+	"net/mail"
+	"time"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/luisync/Job-Queue/internal/json"
+	"github.com/luisync/Job-Queue/internal/token"
+	"github.com/luisync/Job-Queue/internal/util"
+)
+
+// Handlers depend on the services.
+type handler struct {
+	service    Service
+	tokenMaker *token.JWTMaker
+}
+
+// Constructor for creating the handlers.
+func NewHandler(service Service, secretKey string) *handler {
+	return &handler{
+		service:    service,
+		tokenMaker: token.NewJWTMaker(secretKey),
+	}
+}
+
+// Register a user.
+func (h *handler) Register(w http.ResponseWriter, r *http.Request) {
+	// Get the email and password entered.
+	var newUser createUserParams
+	if err := json.Read(r, &newUser); err != nil {
+		log.Println(err)
+		http.Error(w, "Please include the correct fields.", http.StatusBadRequest)
+		return
+	}
+
+	// Validade input.
+	if len(newUser.Email) == 0 || len(newUser.Username) == 0 || len(newUser.Password) == 0 || len(newUser.First_name) == 0 || len(newUser.Last_name) == 0 {
+		log.Printf("Empty Creadentails.")
+		http.Error(w, "Please fill in all of the required fields.", http.StatusBadRequest)
+		return
+	}
+
+	if len([]rune(newUser.Username)) < 8 || len([]rune(newUser.Password)) < 8 {
+		log.Printf("Credentials are too short.")
+		http.Error(w, "Please include a valid username and password.", http.StatusBadRequest)
+		return
+	}
+
+	if len([]rune(newUser.First_name)) < 2 || len([]rune(newUser.First_name)) > 50 ||
+		len([]rune(newUser.Last_name)) < 2 || len([]rune(newUser.Last_name)) > 50 {
+		log.Printf("Name is out of the expected 2-50 character range.")
+		http.Error(w, "Please include a valid first and last name.", http.StatusBadRequest)
+		return
+	}
+
+	address, err := mail.ParseAddress(newUser.Email)
+	if err != nil || address.Address != newUser.Email {
+		log.Printf("Include a valid email.")
+		http.Error(w, "Please include a valid email.", http.StatusBadRequest)
+		return
+	}
+
+	// Hash password.
+	hashedPassword, err := util.HashPassword(newUser.Password)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "Server error, please try again later.", http.StatusInternalServerError)
+		return
+	}
+	newUser.Password = hashedPassword
+
+	// Create user.
+	createdUser, err := h.service.Register(r.Context(), newUser)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "Server error, please try again later.", http.StatusInternalServerError)
+		return
+	}
+
+	json.Write(w, http.StatusCreated, createdUser)
+}
+
+// Login as a user.
+func (h *handler) Login(w http.ResponseWriter, r *http.Request) {
+	var userDetails loginUserParams
+	if err := json.Read(r, &userDetails); err != nil {
+		log.Println(err)
+		http.Error(w, "Please include the correct fields.", http.StatusBadRequest)
+		return
+	}
+
+	// Validade input.
+	if len(userDetails.Email) == 0 || len(userDetails.Password) == 0 {
+		log.Printf("Empty Creadentails.")
+		http.Error(w, "Please fill in all of the required fields.", http.StatusBadRequest)
+		return
+	}
+
+	// Check whether the user is in the database.
+	user, err := h.service.FindUserByEmail(r.Context(), userDetails.Email)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "Please include a valid email and password.", http.StatusBadRequest)
+		return
+	}
+
+	// Check whether the the password is in the database.
+	if err := util.CheckPassword(userDetails.Password, user.Password); err != nil {
+		log.Printf("Wrong password.")
+		http.Error(w, "Please include a valid email and password.", http.StatusBadRequest)
+		return
+	}
+
+	// Create access token.
+	accessToken, accessClaims, err := h.tokenMaker.CreateToken(user.ID, user.Email, 15*time.Minute)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "Server error, please try again later.", http.StatusInternalServerError)
+		return
+	}
+
+	// Create refresh token.
+	refreshToken, refreshClaims, err := h.tokenMaker.CreateToken(user.ID, user.Email, 24*time.Hour)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "Server error, please try again later.", http.StatusInternalServerError)
+		return
+	}
+
+	// Create login session.
+	session, err := h.service.CreateSession(r.Context(), createSessionParams{
+		ID:            refreshClaims.RegisteredClaims.ID,
+		User_email:    user.Email,
+		Refresh_token: refreshToken,
+		Is_revoked:    false,
+		Expires_at:    refreshClaims.RegisteredClaims.ExpiresAt.Time,
+	})
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "Server error, please try again later.", http.StatusInternalServerError)
+		return
+	}
+
+	res := LoginRes{
+		Session_ID:               session.ID,
+		Access_token:             accessToken,
+		Refresh_token:            refreshToken,
+		Access_token_expires_at:  accessClaims.RegisteredClaims.ExpiresAt.Time,
+		Refresh_token_expires_at: refreshClaims.RegisteredClaims.ExpiresAt.Time,
+		Email:                    user.Email,
+	}
+
+	json.Write(w, http.StatusOK, res)
+}
+
+// Logout a user.
+func (h *handler) Logout(w http.ResponseWriter, r *http.Request) {
+	// Get user session id.
+	id := chi.URLParam(r, "id")
+	if id == "" {
+		log.Printf("No sessions provided.")
+		http.Error(w, "Please include a session id.", http.StatusBadRequest)
+		return
+	}
+
+	// Delete session.
+	deletedSession, err := h.service.DeteleSession(r.Context(), id)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "Server error, please try again later.", http.StatusInternalServerError)
+		return
+	}
+
+	json.Write(w, http.StatusOK, deletedSession)
+}
+
+// Renew access token.
+func (h *handler) RenewAccessToken(w http.ResponseWriter, r *http.Request) {
+	// Get the refresh token.
+	var refreshToken RenewAccessTokenReq
+	if err := json.Read(r, &refreshToken); err != nil {
+		log.Println(err)
+		http.Error(w, "Please include the correct fields.", http.StatusBadRequest)
+		return
+	}
+
+	if len(refreshToken.Refresh_token) == 0 {
+		log.Println("Empty field.")
+		http.Error(w, "Please include a refresh token.", http.StatusBadRequest)
+		return
+	}
+
+	// Varify token.
+	refreshClaims, err := h.tokenMaker.VerfifyToken(refreshToken.Refresh_token)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "Please include a valid refresh token.", http.StatusBadRequest)
+		return
+	}
+
+	// Get the user's current session.
+	session, err := h.service.FindSessionByID(r.Context(), refreshClaims.ID.String())
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "Server error, please try again later.", http.StatusInternalServerError)
+		return
+	}
+
+	// Compare session email with the current one.
+	if session.UserEmail != refreshClaims.Email {
+		log.Println(
+			"The session in the database doesn't have the same " +
+				" email as the one the user is logged in on.")
+		http.Error(w, "Server error, please try again later.", http.StatusInternalServerError)
+		return
+	}
+
+	// Check whether the session has been revoked.
+	if session.IsRevoked {
+		log.Println("This session has been revoked.")
+		http.Error(w, "Server error, please try again later.", http.StatusInternalServerError)
+		return
+	}
+
+	// Create a new token.
+	accessToken, accessClaims, err := h.tokenMaker.CreateToken(refreshClaims.ID, refreshClaims.Email, 15*time.Minute)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "Server error, please try again later.", http.StatusInternalServerError)
+		return
+	}
+
+	res := RenewAccessTokenRes{
+		Access_token:            accessToken,
+		Access_token_expires_at: accessClaims.RegisteredClaims.ExpiresAt.Time,
+	}
+
+	json.Write(w, http.StatusOK, res)
+}
+
+// Revoke a user's session.
+func (h *handler) RevokeSession(w http.ResponseWriter, r *http.Request) {
+	// Get the session id.
+	session := chi.URLParam(r, "id")
+	if len(session) == 0 {
+		log.Println("No session id included.")
+		http.Error(w, "Please include a session id.", http.StatusBadRequest)
+		return
+	}
+
+	// Revoke the session.
+	revokedSession, err := h.service.RevokeSession(r.Context(), session)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "Server error, please try again later.", http.StatusInternalServerError)
+		return
+	}
+
+	json.Write(w, http.StatusNoContent, revokedSession)
+}
