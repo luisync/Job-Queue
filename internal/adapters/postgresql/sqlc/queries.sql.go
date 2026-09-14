@@ -7,6 +7,7 @@ package repo
 
 import (
 	"context"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
 )
@@ -55,6 +56,121 @@ func (q *Queries) CreateJob(ctx context.Context, arg CreateJobParams) (Job, erro
 	return i, err
 }
 
+const createSession = `-- name: CreateSession :one
+INSERT INTO sessions (
+    id,
+    user_email, 
+    refresh_token,
+    is_revoked,
+    expires_at
+)
+VALUES (
+    $1, 
+    $2, 
+    $3,
+    $4,
+    $5
+) 
+RETURNING id, user_email, refresh_token, is_revoked, created_at, expires_at
+`
+
+type CreateSessionParams struct {
+	ID           string    `json:"id"`
+	UserEmail    string    `json:"user_email"`
+	RefreshToken string    `json:"refresh_token"`
+	IsRevoked    bool      `json:"is_revoked"`
+	ExpiresAt    time.Time `json:"expires_at"`
+}
+
+func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error) {
+	row := q.db.QueryRow(ctx, createSession,
+		arg.ID,
+		arg.UserEmail,
+		arg.RefreshToken,
+		arg.IsRevoked,
+		arg.ExpiresAt,
+	)
+	var i Session
+	err := row.Scan(
+		&i.ID,
+		&i.UserEmail,
+		&i.RefreshToken,
+		&i.IsRevoked,
+		&i.CreatedAt,
+		&i.ExpiresAt,
+	)
+	return i, err
+}
+
+const createUser = `-- name: CreateUser :one
+INSERT INTO users (
+    first_name, 
+    last_name, 
+    username, 
+    password,
+    email
+)
+VALUES (
+    $1, 
+    $2, 
+    $3, 
+    $4,
+    $5
+) 
+RETURNING id, first_name, last_name, username, email, password, updated_at, created_at
+`
+
+type CreateUserParams struct {
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"`
+	Username  string `json:"username"`
+	Password  string `json:"password"`
+	Email     string `json:"email"`
+}
+
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
+	row := q.db.QueryRow(ctx, createUser,
+		arg.FirstName,
+		arg.LastName,
+		arg.Username,
+		arg.Password,
+		arg.Email,
+	)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.FirstName,
+		&i.LastName,
+		&i.Username,
+		&i.Email,
+		&i.Password,
+		&i.UpdatedAt,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const deteleSession = `-- name: DeteleSession :one
+DELETE 
+FROM sessions 
+WHERE id = $1
+RETURNING id, user_email, refresh_token, is_revoked, created_at, expires_at
+`
+
+func (q *Queries) DeteleSession(ctx context.Context, id string) (Session, error) {
+	row := q.db.QueryRow(ctx, deteleSession, id)
+	var i Session
+	err := row.Scan(
+		&i.ID,
+		&i.UserEmail,
+		&i.RefreshToken,
+		&i.IsRevoked,
+		&i.CreatedAt,
+		&i.ExpiresAt,
+	)
+	return i, err
+}
+
 const findJobByID = `-- name: FindJobByID :one
 SELECT id, creator_id, language, dependencies, function, status, updated_at, created_at 
 FROM jobs 
@@ -77,11 +193,79 @@ func (q *Queries) FindJobByID(ctx context.Context, id pgtype.UUID) (Job, error) 
 	return i, err
 }
 
+const findSessionByEmail = `-- name: FindSessionByEmail :one
+SELECT id, user_email, refresh_token, is_revoked, created_at, expires_at 
+FROM sessions 
+WHERE user_email = $1
+`
+
+func (q *Queries) FindSessionByEmail(ctx context.Context, userEmail string) (Session, error) {
+	row := q.db.QueryRow(ctx, findSessionByEmail, userEmail)
+	var i Session
+	err := row.Scan(
+		&i.ID,
+		&i.UserEmail,
+		&i.RefreshToken,
+		&i.IsRevoked,
+		&i.CreatedAt,
+		&i.ExpiresAt,
+	)
+	return i, err
+}
+
+const findSessionByID = `-- name: FindSessionByID :one
+
+SELECT id, user_email, refresh_token, is_revoked, created_at, expires_at 
+FROM sessions 
+WHERE id = $1
+`
+
+// Sessions
+func (q *Queries) FindSessionByID(ctx context.Context, id string) (Session, error) {
+	row := q.db.QueryRow(ctx, findSessionByID, id)
+	var i Session
+	err := row.Scan(
+		&i.ID,
+		&i.UserEmail,
+		&i.RefreshToken,
+		&i.IsRevoked,
+		&i.CreatedAt,
+		&i.ExpiresAt,
+	)
+	return i, err
+}
+
+const findUserByEmail = `-- name: FindUserByEmail :one
+
+SELECT id, first_name, last_name, username, email, password, updated_at, created_at 
+FROM users 
+WHERE email = $1
+`
+
+// Users
+func (q *Queries) FindUserByEmail(ctx context.Context, email string) (User, error) {
+	row := q.db.QueryRow(ctx, findUserByEmail, email)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.FirstName,
+		&i.LastName,
+		&i.Username,
+		&i.Email,
+		&i.Password,
+		&i.UpdatedAt,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const listJobs = `-- name: ListJobs :many
+
 SELECT id, creator_id, language, dependencies, function, status, updated_at, created_at
 FROM jobs
 `
 
+// Jobs
 func (q *Queries) ListJobs(ctx context.Context) ([]Job, error) {
 	rows, err := q.db.Query(ctx, listJobs)
 	if err != nil {
@@ -109,4 +293,25 @@ func (q *Queries) ListJobs(ctx context.Context) ([]Job, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const revokeSession = `-- name: RevokeSession :one
+UPDATE sessions 
+SET is_revoked=1
+WHERE id = $1
+RETURNING id, user_email, refresh_token, is_revoked, created_at, expires_at
+`
+
+func (q *Queries) RevokeSession(ctx context.Context, id string) (Session, error) {
+	row := q.db.QueryRow(ctx, revokeSession, id)
+	var i Session
+	err := row.Scan(
+		&i.ID,
+		&i.UserEmail,
+		&i.RefreshToken,
+		&i.IsRevoked,
+		&i.CreatedAt,
+		&i.ExpiresAt,
+	)
+	return i, err
 }

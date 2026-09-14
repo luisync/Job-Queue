@@ -7,6 +7,7 @@ package repo
 import (
 	"database/sql/driver"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
 )
@@ -113,6 +114,15 @@ type JobResult struct {
 	JobID     pgtype.UUID        `json:"job_id"`
 	Output    string             `json:"output"`
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
+}
+
+type Session struct {
+	ID           string    `json:"id"`
+	UserEmail    string    `json:"user_email"`
+	RefreshToken string    `json:"refresh_token"`
+	IsRevoked    bool      `json:"is_revoked"`
+	CreatedAt    time.Time `json:"created_at"`
+	ExpiresAt    time.Time `json:"expires_at"`
 }
 
 type User struct {

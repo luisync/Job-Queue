@@ -85,7 +85,7 @@ func (h *handler) CreateJob(w http.ResponseWriter, r *http.Request) {
 	createdJob, err := h.service.CreateJob(r.Context(), newJob)
 	if err != nil {
 		log.Println(err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Server error, please try again later.", http.StatusInternalServerError)
 		return
 	}
 
