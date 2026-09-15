@@ -9,8 +9,8 @@ import (
 
 // Functions a struct must define to be considered a service.
 type Service interface {
-	ListJobs(ctx context.Context) ([]repo.Job, error)
-	FindJob(ctx context.Context, jobID pgtype.UUID) (repo.Job, error)
+	ListJobs(ctx context.Context, id pgtype.UUID) ([]repo.Job, error)
+	FindJob(ctx context.Context, ids findJobByIDParams) (repo.Job, error)
 	CreateJob(ctx context.Context, newJob createJobParams) (repo.Job, error)
 }
 
@@ -25,13 +25,16 @@ func NewService(repo repo.Querier) Service {
 }
 
 // List all jobs.
-func (s *svc) ListJobs(ctx context.Context) ([]repo.Job, error) {
-	return s.repo.ListJobs(ctx)
+func (s *svc) ListJobs(ctx context.Context, id pgtype.UUID) ([]repo.Job, error) {
+	return s.repo.ListJobs(ctx, id)
 }
 
 // Find a job by ID.
-func (s *svc) FindJob(ctx context.Context, jobID pgtype.UUID) (repo.Job, error) {
-	return s.repo.FindJobByID(ctx, jobID)
+func (s *svc) FindJob(ctx context.Context, ids findJobByIDParams) (repo.Job, error) {
+	return s.repo.FindJobByID(ctx, repo.FindJobByIDParams{
+		ID:        ids.ID,
+		CreatorID: ids.Creator_id,
+	})
 }
 
 // Create a job.

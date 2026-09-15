@@ -2,12 +2,16 @@
 
 -- name: ListJobs :many
 SELECT *
-FROM jobs;
+FROM jobs 
+WHERE creator_id = $1;
 
 -- name: FindJobByID :one
 SELECT * 
 FROM jobs 
-WHERE id = $1;
+WHERE 
+id = $1
+AND 
+creator_id = $2;
 
 -- name: CreateJob :one
 INSERT INTO jobs (
@@ -62,8 +66,8 @@ WHERE user_email = $1;
 
 -- name: RevokeSession :one
 UPDATE sessions 
-SET is_revoked=1
-WHERE id = $1
+SET is_revoked=true
+WHERE user_email = $1
 RETURNING *;
 
 -- name: DeteleSession :one

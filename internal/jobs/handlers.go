@@ -7,6 +7,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/luisync/Job-Queue/internal/json"
+	"github.com/luisync/Job-Queue/internal/users"
 )
 
 // Handlers depend on the services.
@@ -21,10 +22,18 @@ func NewHandler(service Service) *handler {
 	}
 }
 
-// List all jobs.
+// List all jobs belonging to the user currently logged in.
 func (h *handler) ListJobs(w http.ResponseWriter, r *http.Request) {
-	// Get all jobs.
-	jobs, err := h.service.ListJobs(r.Context())
+	// Get user ID from the context.
+	userID, err := users.GetUserIDFromContext(r.Context())
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "Server error, please try again later.", http.StatusInternalServerError)
+		return
+	}
+
+	// Get user jobs.
+	jobs, err := h.service.ListJobs(r.Context(), userID)
 	if err != nil {
 		log.Println(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -47,11 +56,24 @@ func (h *handler) FindJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Find the job with the UUID.
-	job, err := h.service.FindJob(r.Context(), jobID)
+	// Get the user ID from the context.
+	userID, err := users.GetUserIDFromContext(r.Context())
 	if err != nil {
 		log.Println(err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Server error, please try again later.", http.StatusInternalServerError)
+		return
+	}
+
+	// Find the job with the UUID that was created by the logged in user.
+	ids := findJobByIDParams{
+		ID:         jobID,
+		Creator_id: userID,
+	}
+
+	job, err := h.service.FindJob(r.Context(), ids)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "Server error, please try again later.", http.StatusInternalServerError)
 		return
 	}
 
@@ -61,11 +83,23 @@ func (h *handler) FindJob(w http.ResponseWriter, r *http.Request) {
 // Create a new job.
 func (h *handler) CreateJob(w http.ResponseWriter, r *http.Request) {
 	// Extract the new job's contents from the request.
-	var newJob createJobParams
-	if err := json.Read(r, &newJob); err != nil {
+	var newJobInput createJobReq
+	if err := json.Read(r, &newJobInput); err != nil {
 		log.Println(err)
 		http.Error(w, "Please include the correct fields.", http.StatusBadRequest)
 		return
+	}
+
+	creatorID, err := users.GetUserIDFromContext(r.Context())
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "Server error, please try again later.", http.StatusInternalServerError)
+		return
+	}
+
+	newJob := createJobParams{
+		CreatorID:    creatorID,
+		createJobReq: newJobInput,
 	}
 
 	// Validade payload.

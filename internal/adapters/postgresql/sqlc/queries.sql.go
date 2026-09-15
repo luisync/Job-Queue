@@ -174,11 +174,19 @@ func (q *Queries) DeteleSession(ctx context.Context, id string) (Session, error)
 const findJobByID = `-- name: FindJobByID :one
 SELECT id, creator_id, language, dependencies, function, status, updated_at, created_at 
 FROM jobs 
-WHERE id = $1
+WHERE 
+id = $1
+AND 
+creator_id = $2
 `
 
-func (q *Queries) FindJobByID(ctx context.Context, id pgtype.UUID) (Job, error) {
-	row := q.db.QueryRow(ctx, findJobByID, id)
+type FindJobByIDParams struct {
+	ID        pgtype.UUID `json:"id"`
+	CreatorID pgtype.UUID `json:"creator_id"`
+}
+
+func (q *Queries) FindJobByID(ctx context.Context, arg FindJobByIDParams) (Job, error) {
+	row := q.db.QueryRow(ctx, findJobByID, arg.ID, arg.CreatorID)
 	var i Job
 	err := row.Scan(
 		&i.ID,
@@ -262,12 +270,13 @@ func (q *Queries) FindUserByEmail(ctx context.Context, email string) (User, erro
 const listJobs = `-- name: ListJobs :many
 
 SELECT id, creator_id, language, dependencies, function, status, updated_at, created_at
-FROM jobs
+FROM jobs 
+WHERE creator_id = $1
 `
 
 // Jobs
-func (q *Queries) ListJobs(ctx context.Context) ([]Job, error) {
-	rows, err := q.db.Query(ctx, listJobs)
+func (q *Queries) ListJobs(ctx context.Context, creatorID pgtype.UUID) ([]Job, error) {
+	rows, err := q.db.Query(ctx, listJobs, creatorID)
 	if err != nil {
 		return nil, err
 	}
@@ -297,13 +306,13 @@ func (q *Queries) ListJobs(ctx context.Context) ([]Job, error) {
 
 const revokeSession = `-- name: RevokeSession :one
 UPDATE sessions 
-SET is_revoked=1
-WHERE id = $1
+SET is_revoked=true
+WHERE user_email = $1
 RETURNING id, user_email, refresh_token, is_revoked, created_at, expires_at
 `
 
-func (q *Queries) RevokeSession(ctx context.Context, id string) (Session, error) {
-	row := q.db.QueryRow(ctx, revokeSession, id)
+func (q *Queries) RevokeSession(ctx context.Context, userEmail string) (Session, error) {
+	row := q.db.QueryRow(ctx, revokeSession, userEmail)
 	var i Session
 	err := row.Scan(
 		&i.ID,

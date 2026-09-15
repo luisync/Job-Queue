@@ -1,12 +1,14 @@
 package users
 
 import (
+	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"net/mail"
 	"time"
 
-	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/luisync/Job-Queue/internal/json"
 	"github.com/luisync/Job-Queue/internal/token"
 	"github.com/luisync/Job-Queue/internal/util"
@@ -15,14 +17,14 @@ import (
 // Handlers depend on the services.
 type handler struct {
 	service    Service
-	tokenMaker *token.JWTMaker
+	TokenMaker *token.JWTMaker
 }
 
 // Constructor for creating the handlers.
 func NewHandler(service Service, secretKey string) *handler {
 	return &handler{
 		service:    service,
-		tokenMaker: token.NewJWTMaker(secretKey),
+		TokenMaker: token.NewJWTMaker(secretKey),
 	}
 }
 
@@ -115,7 +117,7 @@ func (h *handler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create access token.
-	accessToken, accessClaims, err := h.tokenMaker.CreateToken(user.ID, user.Email, 15*time.Minute)
+	accessToken, accessClaims, err := h.TokenMaker.CreateToken(user.ID, user.Email, 15*time.Minute)
 	if err != nil {
 		log.Println(err)
 		http.Error(w, "Server error, please try again later.", http.StatusInternalServerError)
@@ -123,7 +125,7 @@ func (h *handler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create refresh token.
-	refreshToken, refreshClaims, err := h.tokenMaker.CreateToken(user.ID, user.Email, 24*time.Hour)
+	refreshToken, refreshClaims, err := h.TokenMaker.CreateToken(user.ID, user.Email, 24*time.Hour)
 	if err != nil {
 		log.Println(err)
 		http.Error(w, "Server error, please try again later.", http.StatusInternalServerError)
@@ -159,15 +161,17 @@ func (h *handler) Login(w http.ResponseWriter, r *http.Request) {
 // Logout a user.
 func (h *handler) Logout(w http.ResponseWriter, r *http.Request) {
 	// Get user session id.
-	id := chi.URLParam(r, "id")
-	if id == "" {
-		log.Printf("No sessions provided.")
-		http.Error(w, "Please include a session id.", http.StatusBadRequest)
+	claims, ok := r.Context().Value(AuthKey{}).(*token.UserClaims)
+	if !ok {
+		log.Println("Failed to read the context.")
+		http.Error(w, "Server error, please try again later.", http.StatusInternalServerError)
 		return
 	}
 
+	session := claims.RegisteredClaims.ID
+
 	// Delete session.
-	deletedSession, err := h.service.DeteleSession(r.Context(), id)
+	deletedSession, err := h.service.DeteleSession(r.Context(), session)
 	if err != nil {
 		log.Println(err)
 		http.Error(w, "Server error, please try again later.", http.StatusInternalServerError)
@@ -194,7 +198,7 @@ func (h *handler) RenewAccessToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Varify token.
-	refreshClaims, err := h.tokenMaker.VerfifyToken(refreshToken.Refresh_token)
+	refreshClaims, err := h.TokenMaker.VerfifyToken(refreshToken.Refresh_token)
 	if err != nil {
 		log.Println(err)
 		http.Error(w, "Please include a valid refresh token.", http.StatusBadRequest)
@@ -202,7 +206,7 @@ func (h *handler) RenewAccessToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get the user's current session.
-	session, err := h.service.FindSessionByID(r.Context(), refreshClaims.ID.String())
+	session, err := h.service.FindSessionByID(r.Context(), refreshClaims.RegisteredClaims.ID)
 	if err != nil {
 		log.Println(err)
 		http.Error(w, "Server error, please try again later.", http.StatusInternalServerError)
@@ -226,7 +230,7 @@ func (h *handler) RenewAccessToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create a new token.
-	accessToken, accessClaims, err := h.tokenMaker.CreateToken(refreshClaims.ID, refreshClaims.Email, 15*time.Minute)
+	accessToken, accessClaims, err := h.TokenMaker.CreateToken(refreshClaims.ID, refreshClaims.Email, 15*time.Minute)
 	if err != nil {
 		log.Println(err)
 		http.Error(w, "Server error, please try again later.", http.StatusInternalServerError)
@@ -241,18 +245,20 @@ func (h *handler) RenewAccessToken(w http.ResponseWriter, r *http.Request) {
 	json.Write(w, http.StatusOK, res)
 }
 
-// Revoke a user's session.
+// Revoke a user's sessions.
 func (h *handler) RevokeSession(w http.ResponseWriter, r *http.Request) {
 	// Get the session id.
-	session := chi.URLParam(r, "id")
-	if len(session) == 0 {
-		log.Println("No session id included.")
-		http.Error(w, "Please include a session id.", http.StatusBadRequest)
+	claims, ok := r.Context().Value(AuthKey{}).(*token.UserClaims)
+	if !ok {
+		log.Println("Failed to read the context.")
+		http.Error(w, "Server error, please try again later.", http.StatusInternalServerError)
 		return
 	}
 
+	email := claims.Email
+
 	// Revoke the session.
-	revokedSession, err := h.service.RevokeSession(r.Context(), session)
+	revokedSession, err := h.service.RevokeSession(r.Context(), email)
 	if err != nil {
 		log.Println(err)
 		http.Error(w, "Server error, please try again later.", http.StatusInternalServerError)
@@ -260,4 +266,17 @@ func (h *handler) RevokeSession(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.Write(w, http.StatusNoContent, revokedSession)
+}
+
+// Get the id of the user that's currently logged in.
+func GetUserIDFromContext(ctx context.Context) (pgtype.UUID, error) {
+	// Get id from the context.
+	claims, ok := ctx.Value(AuthKey{}).(*token.UserClaims)
+	if !ok {
+		return pgtype.UUID{}, fmt.Errorf("Failed to get the user id from the context.")
+	}
+
+	userID := claims.ID
+
+	return userID, nil
 }

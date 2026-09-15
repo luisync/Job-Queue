@@ -15,15 +15,15 @@ type Querier interface {
 	CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	DeteleSession(ctx context.Context, id string) (Session, error)
-	FindJobByID(ctx context.Context, id pgtype.UUID) (Job, error)
+	FindJobByID(ctx context.Context, arg FindJobByIDParams) (Job, error)
 	FindSessionByEmail(ctx context.Context, userEmail string) (Session, error)
 	// Sessions
 	FindSessionByID(ctx context.Context, id string) (Session, error)
 	// Users
 	FindUserByEmail(ctx context.Context, email string) (User, error)
 	// Jobs
-	ListJobs(ctx context.Context) ([]Job, error)
-	RevokeSession(ctx context.Context, id string) (Session, error)
+	ListJobs(ctx context.Context, creatorID pgtype.UUID) ([]Job, error)
+	RevokeSession(ctx context.Context, userEmail string) (Session, error)
 }
 
 var _ Querier = (*Queries)(nil)
