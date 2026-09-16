@@ -6,19 +6,20 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/luisync/Job-Queue/internal/jobqueue-grpc/pb"
 	"github.com/luisync/Job-Queue/internal/json"
 	"github.com/luisync/Job-Queue/internal/users"
 )
 
 // Handlers depend on the services.
 type handler struct {
-	service Service
+	client pb.JobqueueClient
 }
 
 // Constructor for creating the handlers.
-func NewHandler(service Service) *handler {
+func NewHandler(client pb.JobqueueClient) *handler {
 	return &handler{
-		service: service,
+		client: client,
 	}
 }
 
@@ -33,7 +34,9 @@ func (h *handler) ListJobs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get user jobs.
-	jobs, err := h.service.ListJobs(r.Context(), userID)
+	jobs, err := h.client.ListJobs(r.Context(), &pb.JobsReq{
+		CreatorId: userID.String(),
+	})
 	if err != nil {
 		log.Println(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -65,12 +68,10 @@ func (h *handler) FindJob(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Find the job with the UUID that was created by the logged in user.
-	ids := findJobByIDParams{
-		ID:         jobID,
-		Creator_id: userID,
-	}
-
-	job, err := h.service.FindJob(r.Context(), ids)
+	job, err := h.client.FindJob(r.Context(), &pb.FindJobReq{
+		Id:        jobID.String(),
+		CreatorId: userID.String(),
+	})
 	if err != nil {
 		log.Println(err)
 		http.Error(w, "Server error, please try again later.", http.StatusInternalServerError)
@@ -116,7 +117,14 @@ func (h *handler) CreateJob(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create the new job.
-	createdJob, err := h.service.CreateJob(r.Context(), newJob)
+	createdJob, err := h.client.CreateJob(r.Context(), &pb.JobsReq{
+		CreatorId: newJob.CreatorID.String(),
+		Job: &pb.Job{
+			Language:     string(newJob.Language),
+			Dependencies: newJob.Dependencies,
+			Function:     newJob.Function,
+		},
+	})
 	if err != nil {
 		log.Println(err)
 		http.Error(w, "Server error, please try again later.", http.StatusInternalServerError)

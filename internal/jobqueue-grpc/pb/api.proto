@@ -1,0 +1,96 @@
+syntax = "proto3";
+
+package pb;
+
+option go_package = "github.com/luisync/Job-Queue/internal/jobqueue-grpc/pb";
+
+import "google/protobuf/timestamp.proto";
+
+// Request to create a job.
+message Job {
+    string language = 1;
+    string dependencies = 2;
+    string function = 3;
+}
+
+message JobsReq {
+    string creator_id = 1;
+    Job job = 2;
+}
+
+// Request to find a job.
+message FindJobReq {
+    string id = 1;
+    string creator_id = 2;
+}
+
+message JobsRes {
+    string id = 1;
+    string creator_id = 2;
+    string language = 3;
+    string dependencies = 4;
+    string function = 5;
+    string status = 6;
+    google.protobuf.Timestamp updated_at = 7;
+    google.protobuf.Timestamp created_at = 8;
+}
+
+message ListJobsRes {
+    repeated JobsRes jobs = 1;
+}
+
+message UsersReq {
+    string first_name = 2;
+    string last_name = 3;
+    string username = 4;
+    string email = 5;
+    string password = 6;
+}
+
+message UsersRes {
+    string id = 1;
+    string first_name = 2;
+    string last_name = 3;
+    string username = 4;
+    string email = 5;
+    string password = 6;
+    google.protobuf.Timestamp updated_at = 7;
+    google.protobuf.Timestamp created_at = 8;
+}
+
+message SessionsReq {
+    string id = 1;
+    string user_email = 2;
+    string refresh_token = 3;
+    bool is_revoked = 4;
+    google.protobuf.Timestamp expires_at = 5;
+}
+
+
+message SessionsRes {
+    string id = 1;
+    string user_email = 2;
+    string refresh_token = 3;
+    bool is_revoked = 4;
+    google.protobuf.Timestamp created_at = 5;
+    google.protobuf.Timestamp expires_at = 6;
+}
+
+message ListSessionsRes {
+    repeated SessionsRes sessions = 1;
+}
+
+service jobqueue {
+    rpc ListJobs(JobsReq) returns (ListJobsRes) {}
+	rpc FindJob(FindJobReq) returns (JobsRes) {}
+	rpc CreateJob(JobsReq) returns (JobsRes) {}
+
+    rpc FindUserByEmail(UsersReq) returns (UsersRes) {}
+	rpc Register(UsersReq) returns (UsersRes) {}
+
+	rpc FindSessionByID(SessionsReq) returns (SessionsRes) {}
+	rpc FindSessionsByEmail(SessionsReq) returns (ListSessionsRes) {} 
+	rpc RevokeSessions(SessionsReq) returns (ListSessionsRes) {}
+	rpc DeteleSessions(SessionsReq) returns (ListSessionsRes) {}
+	rpc CreateSession(SessionsReq) returns (SessionsRes) {}
+}

@@ -3,7 +3,7 @@ package users
 import (
 	"context"
 
-	repo "github.com/luisync/Job-Queue/internal/adapters/postgresql/sqlc"
+	repo "github.com/luisync/Job-Queue/internal/jobqueue-grpc/adapters/postgresql/sqlc"
 )
 
 // Functions a struct must define to be considered a service.
@@ -11,9 +11,9 @@ type Service interface {
 	FindUserByEmail(ctx context.Context, email string) (repo.User, error)
 	Register(ctx context.Context, newUser createUserParams) (repo.User, error)
 	FindSessionByID(ctx context.Context, id string) (repo.Session, error)
-	FindSessionByEmail(ctx context.Context, email string) (repo.Session, error)
-	RevokeSession(ctx context.Context, id string) (repo.Session, error)
-	DeteleSession(ctx context.Context, id string) (repo.Session, error)
+	FindSessionsByEmail(ctx context.Context, email string) ([]repo.Session, error)
+	RevokeSessions(ctx context.Context, email string) ([]repo.Session, error)
+	DeteleSessions(ctx context.Context, email string) ([]repo.Session, error)
 	CreateSession(ctx context.Context, newSession createSessionParams) (repo.Session, error)
 }
 
@@ -48,16 +48,16 @@ func (s *svc) FindSessionByID(ctx context.Context, id string) (repo.Session, err
 	return s.repo.FindSessionByID(ctx, id)
 }
 
-func (s *svc) FindSessionByEmail(ctx context.Context, email string) (repo.Session, error) {
-	return s.repo.FindSessionByEmail(ctx, email)
+func (s *svc) FindSessionsByEmail(ctx context.Context, email string) ([]repo.Session, error) {
+	return s.repo.FindSessionsByEmail(ctx, email)
 }
 
-func (s *svc) RevokeSession(ctx context.Context, id string) (repo.Session, error) {
-	return s.repo.RevokeSession(ctx, id)
+func (s *svc) RevokeSessions(ctx context.Context, email string) ([]repo.Session, error) {
+	return s.repo.RevokeSessions(ctx, email)
 }
 
-func (s *svc) DeteleSession(ctx context.Context, id string) (repo.Session, error) {
-	return s.repo.DeteleSession(ctx, id)
+func (s *svc) DeteleSessions(ctx context.Context, email string) ([]repo.Session, error) {
+	return s.repo.DeteleSessions(ctx, email)
 }
 
 func (s *svc) CreateSession(ctx context.Context, newSession createSessionParams) (repo.Session, error) {

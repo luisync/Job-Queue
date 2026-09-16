@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/jackc/pgx/v5/pgtype"
-	repo "github.com/luisync/Job-Queue/internal/adapters/postgresql/sqlc"
+	repo "github.com/luisync/Job-Queue/internal/jobqueue-grpc/adapters/postgresql/sqlc"
 )
 
 // Functions a struct must define to be considered a service.

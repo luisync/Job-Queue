@@ -150,25 +150,38 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 	return i, err
 }
 
-const deteleSession = `-- name: DeteleSession :one
+const deteleSessions = `-- name: DeteleSessions :many
 DELETE 
 FROM sessions 
-WHERE id = $1
+WHERE user_email = $1
 RETURNING id, user_email, refresh_token, is_revoked, created_at, expires_at
 `
 
-func (q *Queries) DeteleSession(ctx context.Context, id string) (Session, error) {
-	row := q.db.QueryRow(ctx, deteleSession, id)
-	var i Session
-	err := row.Scan(
-		&i.ID,
-		&i.UserEmail,
-		&i.RefreshToken,
-		&i.IsRevoked,
-		&i.CreatedAt,
-		&i.ExpiresAt,
-	)
-	return i, err
+func (q *Queries) DeteleSessions(ctx context.Context, userEmail string) ([]Session, error) {
+	rows, err := q.db.Query(ctx, deteleSessions, userEmail)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Session
+	for rows.Next() {
+		var i Session
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserEmail,
+			&i.RefreshToken,
+			&i.IsRevoked,
+			&i.CreatedAt,
+			&i.ExpiresAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const findJobByID = `-- name: FindJobByID :one
@@ -201,26 +214,6 @@ func (q *Queries) FindJobByID(ctx context.Context, arg FindJobByIDParams) (Job, 
 	return i, err
 }
 
-const findSessionByEmail = `-- name: FindSessionByEmail :one
-SELECT id, user_email, refresh_token, is_revoked, created_at, expires_at 
-FROM sessions 
-WHERE user_email = $1
-`
-
-func (q *Queries) FindSessionByEmail(ctx context.Context, userEmail string) (Session, error) {
-	row := q.db.QueryRow(ctx, findSessionByEmail, userEmail)
-	var i Session
-	err := row.Scan(
-		&i.ID,
-		&i.UserEmail,
-		&i.RefreshToken,
-		&i.IsRevoked,
-		&i.CreatedAt,
-		&i.ExpiresAt,
-	)
-	return i, err
-}
-
 const findSessionByID = `-- name: FindSessionByID :one
 
 SELECT id, user_email, refresh_token, is_revoked, created_at, expires_at 
@@ -241,6 +234,39 @@ func (q *Queries) FindSessionByID(ctx context.Context, id string) (Session, erro
 		&i.ExpiresAt,
 	)
 	return i, err
+}
+
+const findSessionsByEmail = `-- name: FindSessionsByEmail :many
+SELECT id, user_email, refresh_token, is_revoked, created_at, expires_at 
+FROM sessions 
+WHERE user_email = $1
+`
+
+func (q *Queries) FindSessionsByEmail(ctx context.Context, userEmail string) ([]Session, error) {
+	rows, err := q.db.Query(ctx, findSessionsByEmail, userEmail)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Session
+	for rows.Next() {
+		var i Session
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserEmail,
+			&i.RefreshToken,
+			&i.IsRevoked,
+			&i.CreatedAt,
+			&i.ExpiresAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const findUserByEmail = `-- name: FindUserByEmail :one
@@ -304,23 +330,36 @@ func (q *Queries) ListJobs(ctx context.Context, creatorID pgtype.UUID) ([]Job, e
 	return items, nil
 }
 
-const revokeSession = `-- name: RevokeSession :one
+const revokeSessions = `-- name: RevokeSessions :many
 UPDATE sessions 
 SET is_revoked=true
 WHERE user_email = $1
 RETURNING id, user_email, refresh_token, is_revoked, created_at, expires_at
 `
 
-func (q *Queries) RevokeSession(ctx context.Context, userEmail string) (Session, error) {
-	row := q.db.QueryRow(ctx, revokeSession, userEmail)
-	var i Session
-	err := row.Scan(
-		&i.ID,
-		&i.UserEmail,
-		&i.RefreshToken,
-		&i.IsRevoked,
-		&i.CreatedAt,
-		&i.ExpiresAt,
-	)
-	return i, err
+func (q *Queries) RevokeSessions(ctx context.Context, userEmail string) ([]Session, error) {
+	rows, err := q.db.Query(ctx, revokeSessions, userEmail)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Session
+	for rows.Next() {
+		var i Session
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserEmail,
+			&i.RefreshToken,
+			&i.IsRevoked,
+			&i.CreatedAt,
+			&i.ExpiresAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

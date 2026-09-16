@@ -59,21 +59,21 @@ SELECT *
 FROM sessions 
 WHERE id = $1;
 
--- name: FindSessionByEmail :one
+-- name: FindSessionsByEmail :many
 SELECT * 
 FROM sessions 
 WHERE user_email = $1;
 
--- name: RevokeSession :one
+-- name: RevokeSessions :many
 UPDATE sessions 
 SET is_revoked=true
 WHERE user_email = $1
 RETURNING *;
 
--- name: DeteleSession :one
+-- name: DeteleSessions :many
 DELETE 
 FROM sessions 
-WHERE id = $1
+WHERE user_email = $1
 RETURNING *;
 
 -- name: CreateSession :one

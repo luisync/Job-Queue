@@ -9,21 +9,23 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/luisync/Job-Queue/internal/jobqueue-grpc/pb"
 	"github.com/luisync/Job-Queue/internal/json"
 	"github.com/luisync/Job-Queue/internal/token"
 	"github.com/luisync/Job-Queue/internal/util"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // Handlers depend on the services.
 type handler struct {
-	service    Service
+	client     pb.JobqueueClient
 	TokenMaker *token.JWTMaker
 }
 
 // Constructor for creating the handlers.
-func NewHandler(service Service, secretKey string) *handler {
+func NewHandler(client pb.JobqueueClient, secretKey string) *handler {
 	return &handler{
-		service:    service,
+		client:     client,
 		TokenMaker: token.NewJWTMaker(secretKey),
 	}
 }
@@ -75,7 +77,13 @@ func (h *handler) Register(w http.ResponseWriter, r *http.Request) {
 	newUser.Password = hashedPassword
 
 	// Create user.
-	createdUser, err := h.service.Register(r.Context(), newUser)
+	createdUser, err := h.client.Register(r.Context(), &pb.UsersReq{
+		FirstName: newUser.First_name,
+		LastName:  newUser.Last_name,
+		Username:  newUser.Username,
+		Email:     newUser.Email,
+		Password:  newUser.Password,
+	})
 	if err != nil {
 		log.Println(err)
 		http.Error(w, "Server error, please try again later.", http.StatusInternalServerError)
@@ -102,7 +110,9 @@ func (h *handler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check whether the user is in the database.
-	user, err := h.service.FindUserByEmail(r.Context(), userDetails.Email)
+	user, err := h.client.FindUserByEmail(r.Context(), &pb.UsersReq{
+		Email: userDetails.Email,
+	})
 	if err != nil {
 		log.Println(err)
 		http.Error(w, "Please include a valid email and password.", http.StatusBadRequest)
@@ -117,7 +127,13 @@ func (h *handler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create access token.
-	accessToken, accessClaims, err := h.TokenMaker.CreateToken(user.ID, user.Email, 15*time.Minute)
+	var userID pgtype.UUID
+	if err := userID.Scan(user.Id); err != nil {
+		log.Printf("Error converting id into uuid, %w", err)
+		http.Error(w, "Server error, please try again later.", http.StatusInternalServerError)
+		return
+	}
+	accessToken, accessClaims, err := h.TokenMaker.CreateToken(userID, user.Email, 15*time.Minute)
 	if err != nil {
 		log.Println(err)
 		http.Error(w, "Server error, please try again later.", http.StatusInternalServerError)
@@ -125,7 +141,7 @@ func (h *handler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create refresh token.
-	refreshToken, refreshClaims, err := h.TokenMaker.CreateToken(user.ID, user.Email, 24*time.Hour)
+	refreshToken, refreshClaims, err := h.TokenMaker.CreateToken(userID, user.Email, 24*time.Hour)
 	if err != nil {
 		log.Println(err)
 		http.Error(w, "Server error, please try again later.", http.StatusInternalServerError)
@@ -133,12 +149,12 @@ func (h *handler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create login session.
-	session, err := h.service.CreateSession(r.Context(), createSessionParams{
-		ID:            refreshClaims.RegisteredClaims.ID,
-		User_email:    user.Email,
-		Refresh_token: refreshToken,
-		Is_revoked:    false,
-		Expires_at:    refreshClaims.RegisteredClaims.ExpiresAt.Time,
+	session, err := h.client.CreateSession(r.Context(), &pb.SessionsReq{
+		Id:           refreshClaims.RegisteredClaims.ID,
+		UserEmail:    user.Email,
+		RefreshToken: refreshToken,
+		IsRevoked:    false,
+		ExpiresAt:    timestamppb.New(refreshClaims.RegisteredClaims.ExpiresAt.Time),
 	})
 	if err != nil {
 		log.Println(err)
@@ -147,7 +163,7 @@ func (h *handler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	res := LoginRes{
-		Session_ID:               session.ID,
+		Session_ID:               session.Id,
 		Access_token:             accessToken,
 		Refresh_token:            refreshToken,
 		Access_token_expires_at:  accessClaims.RegisteredClaims.ExpiresAt.Time,
@@ -168,10 +184,10 @@ func (h *handler) Logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session := claims.RegisteredClaims.ID
-
 	// Delete session.
-	deletedSession, err := h.service.DeteleSession(r.Context(), session)
+	deletedSession, err := h.client.DeteleSessions(r.Context(), &pb.SessionsReq{
+		UserEmail: claims.Email,
+	})
 	if err != nil {
 		log.Println(err)
 		http.Error(w, "Server error, please try again later.", http.StatusInternalServerError)
@@ -206,7 +222,9 @@ func (h *handler) RenewAccessToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get the user's current session.
-	session, err := h.service.FindSessionByID(r.Context(), refreshClaims.RegisteredClaims.ID)
+	session, err := h.client.FindSessionByID(r.Context(), &pb.SessionsReq{
+		RefreshToken: refreshClaims.RegisteredClaims.ID,
+	})
 	if err != nil {
 		log.Println(err)
 		http.Error(w, "Server error, please try again later.", http.StatusInternalServerError)
@@ -255,10 +273,10 @@ func (h *handler) RevokeSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	email := claims.Email
-
 	// Revoke the session.
-	revokedSession, err := h.service.RevokeSession(r.Context(), email)
+	revokedSession, err := h.client.RevokeSessions(r.Context(), &pb.SessionsReq{
+		UserEmail: claims.Email,
+	})
 	if err != nil {
 		log.Println(err)
 		http.Error(w, "Server error, please try again later.", http.StatusInternalServerError)
