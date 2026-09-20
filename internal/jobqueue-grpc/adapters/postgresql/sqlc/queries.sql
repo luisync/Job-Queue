@@ -92,3 +92,27 @@ VALUES (
     $5
 ) 
 RETURNING *;
+
+-- Private functions for workers.
+
+-- name: WorkerCreateJobResult :one
+INSERT INTO job_results (
+    job_id, 
+    output
+)
+VALUES (
+    $1, 
+    $2
+) 
+RETURNING *;
+
+-- name: WorkerFindJobByID :one
+SELECT dependencies, language, function
+FROM jobs 
+WHERE id = $1;
+
+-- name: WorkerUpdateStatus :one
+UPDATE jobs 
+SET status=$1
+WHERE id = $2
+RETURNING *;

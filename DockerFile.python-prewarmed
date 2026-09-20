@@ -1,0 +1,13 @@
+FROM python:3.11-slim
+
+# Commonly used python packages.
+RUN pip install --no-cache-dir \
+    numpy \
+    pandas \
+    requests \
+    scipy \
+    pydantic \
+    urllib3 \
+    python-dateutil
+
+WORKDIR /workspace

@@ -10,7 +10,7 @@ import (
 func toUUID(uuidStr string) (pgtype.UUID, error) {
 	var uuid pgtype.UUID
 	if err := uuid.Scan(uuidStr); err != nil {
-		return pgtype.UUID{}, fmt.Errorf("Invalid id %w", err)
+		return pgtype.UUID{}, fmt.Errorf("Invalid id, %w", err)
 	}
 
 	return uuid, nil

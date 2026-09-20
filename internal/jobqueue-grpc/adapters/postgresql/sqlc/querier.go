@@ -24,6 +24,10 @@ type Querier interface {
 	// Jobs
 	ListJobs(ctx context.Context, creatorID pgtype.UUID) ([]Job, error)
 	RevokeSessions(ctx context.Context, userEmail string) ([]Session, error)
+	// Private functions for workers.
+	WorkerCreateJobResult(ctx context.Context, arg WorkerCreateJobResultParams) (JobResult, error)
+	WorkerFindJobByID(ctx context.Context, id pgtype.UUID) (WorkerFindJobByIDRow, error)
+	WorkerUpdateStatus(ctx context.Context, arg WorkerUpdateStatusParams) (Job, error)
 }
 
 var _ Querier = (*Queries)(nil)

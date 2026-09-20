@@ -363,3 +363,81 @@ func (q *Queries) RevokeSessions(ctx context.Context, userEmail string) ([]Sessi
 	}
 	return items, nil
 }
+
+const workerCreateJobResult = `-- name: WorkerCreateJobResult :one
+
+INSERT INTO job_results (
+    job_id, 
+    output
+)
+VALUES (
+    $1, 
+    $2
+) 
+RETURNING id, job_id, output, created_at
+`
+
+type WorkerCreateJobResultParams struct {
+	JobID  pgtype.UUID `json:"job_id"`
+	Output string      `json:"output"`
+}
+
+// Private functions for workers.
+func (q *Queries) WorkerCreateJobResult(ctx context.Context, arg WorkerCreateJobResultParams) (JobResult, error) {
+	row := q.db.QueryRow(ctx, workerCreateJobResult, arg.JobID, arg.Output)
+	var i JobResult
+	err := row.Scan(
+		&i.ID,
+		&i.JobID,
+		&i.Output,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const workerFindJobByID = `-- name: WorkerFindJobByID :one
+SELECT dependencies, language, function
+FROM jobs 
+WHERE id = $1
+`
+
+type WorkerFindJobByIDRow struct {
+	Dependencies string      `json:"dependencies"`
+	Language     JobLanguage `json:"language"`
+	Function     string      `json:"function"`
+}
+
+func (q *Queries) WorkerFindJobByID(ctx context.Context, id pgtype.UUID) (WorkerFindJobByIDRow, error) {
+	row := q.db.QueryRow(ctx, workerFindJobByID, id)
+	var i WorkerFindJobByIDRow
+	err := row.Scan(&i.Dependencies, &i.Language, &i.Function)
+	return i, err
+}
+
+const workerUpdateStatus = `-- name: WorkerUpdateStatus :one
+UPDATE jobs 
+SET status=$1
+WHERE id = $2
+RETURNING id, creator_id, language, dependencies, function, status, updated_at, created_at
+`
+
+type WorkerUpdateStatusParams struct {
+	Status JobStatus   `json:"status"`
+	ID     pgtype.UUID `json:"id"`
+}
+
+func (q *Queries) WorkerUpdateStatus(ctx context.Context, arg WorkerUpdateStatusParams) (Job, error) {
+	row := q.db.QueryRow(ctx, workerUpdateStatus, arg.Status, arg.ID)
+	var i Job
+	err := row.Scan(
+		&i.ID,
+		&i.CreatorID,
+		&i.Language,
+		&i.Dependencies,
+		&i.Function,
+		&i.Status,
+		&i.UpdatedAt,
+		&i.CreatedAt,
+	)
+	return i, err
+}
