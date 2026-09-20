@@ -1,4 +1,4 @@
-package scheduler
+package poller
 
 import (
 	"context"
@@ -11,15 +11,15 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-type Scheduler struct {
+type poller struct {
 	streamKey   string
 	batchSize   int32
 	redisClient *redis.Client
 	repo        repo.Querier
 }
 
-func NewScheduler(streamKey string, batchSize int32, redisClient *redis.Client, repo repo.Querier) *Scheduler {
-	return &Scheduler{
+func NewPoller(streamKey string, batchSize int32, redisClient *redis.Client, repo repo.Querier) *poller {
+	return &poller{
 		streamKey:   streamKey,
 		batchSize:   batchSize,
 		redisClient: redisClient,
@@ -28,7 +28,7 @@ func NewScheduler(streamKey string, batchSize int32, redisClient *redis.Client, 
 }
 
 // Fetch and populate redis with job data.
-func (s *Scheduler) StartPoller(ctx context.Context, interval time.Duration) {
+func (s *poller) StartPoller(ctx context.Context, interval time.Duration) {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
@@ -51,7 +51,7 @@ func (s *Scheduler) StartPoller(ctx context.Context, interval time.Duration) {
 }
 
 // Query main database and attempt to insert the result into redis.
-func (s *Scheduler) EnqueuePendingJobs(ctx context.Context) (int, error) {
+func (s *poller) EnqueuePendingJobs(ctx context.Context) (int, error) {
 	jobIDs, err := s.repo.SchedulerFetchAndLockPendingJobs(ctx, s.batchSize)
 	if err != nil {
 		return 0, fmt.Errorf("Failed to fetch jobs from the database, %w", err)

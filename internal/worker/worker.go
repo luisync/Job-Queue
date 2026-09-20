@@ -2,9 +2,11 @@ package worker
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"log/slog"
+	"os"
 	"os/exec"
 	"sync"
 	"time"
@@ -17,12 +19,12 @@ import (
 
 type worker struct {
 	id          string
-	config      Config
-	redisClient redis.Client
+	config      config
+	redisClient *redis.Client
 	repo        repo.Querier
 }
 
-type Config struct {
+type config struct {
 	groupName     string
 	streamKey     string
 	minIdleTime   time.Duration
@@ -31,7 +33,16 @@ type Config struct {
 
 var ErrNoMessages = errors.New("No messages.")
 
-func NewWorker(config Config, redisClient redis.Client, repo repo.Querier) (*worker, error) {
+func NewWorkerConfig(groupName string, streamKey string, minIdleTime time.Duration, claimInterval time.Duration) config {
+	return config{
+		groupName:     groupName,
+		streamKey:     streamKey,
+		minIdleTime:   minIdleTime,
+		claimInterval: claimInterval,
+	}
+}
+
+func NewWorker(config config, redisClient *redis.Client, repo repo.Querier) (*worker, error) {
 	workerID, err := uuid.NewRandom()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to generate worker id, %w", err)
@@ -168,8 +179,22 @@ func (w *worker) execute(ctx context.Context, job *repo.WorkerFindJobByIDRow, jo
 	defer cancel()
 
 	// Set up Docker container.
+	scriptCode := decodeFunction(job.Function)
+
+	// Temporary file containing the job's code to prevent escape characters from bugging the program.
+	tmpFile, err := os.CreateTemp("", "job-*.py")
+	if err != nil {
+		return fmt.Errorf("Failed to create temporary fiule, %w", err)
+	}
+	defer os.Remove(tmpFile.Name())
+
+	if _, err := tmpFile.WriteString(scriptCode); err != nil {
+		return fmt.Errorf("Failed to write the scirpt, %w", err)
+	}
+	tmpFile.Close()
+
 	config := DockerConfig()
-	args, err := config.BuildDockerArgs(Language(job.Language), job.Function, job.Dependencies)
+	args, err := config.BuildDockerArgs(Language(job.Language), tmpFile.Name(), job.Dependencies)
 	if err != nil {
 
 		//  Update redis and jobs table to indicate that the job didn't run.
@@ -196,7 +221,7 @@ func (w *worker) execute(ctx context.Context, job *repo.WorkerFindJobByIDRow, jo
 		if errors.Is(execCtx.Err(), context.DeadlineExceeded) {
 			outputStr += "\nExecution timed out."
 		} else {
-			slog.Warn("Job executed with an error", "job_id", jobIDStr, "error", err)
+			slog.Warn("Job executed with an error", "job_id", jobIDStr, "error", err, "output", outputStr)
 		}
 	}
 
@@ -288,4 +313,13 @@ func (w *worker) claimAbandonedJobs(ctx context.Context, workerName string, star
 	}
 
 	return nextStartID, nil
+}
+
+// Decodes job code from plain text to base64.
+func decodeFunction(rawFunction string) string {
+	decodeBytes, err := base64.StdEncoding.DecodeString(rawFunction)
+	if err != nil {
+		return rawFunction
+	}
+	return string(decodeBytes)
 }

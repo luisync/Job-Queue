@@ -31,15 +31,19 @@ func DockerConfig() ContainerConfig {
 	}
 }
 
-func (c ContainerConfig) BuildDockerArgs(lang Language, code string, rawDeps string) ([]string, error) {
+func (c ContainerConfig) BuildDockerArgs(lang Language, scriptPath string, rawDeps string) ([]string, error) {
 	deps, err := ParseAndSanitizeDeps(rawDeps)
 	if err != nil {
 		return nil, fmt.Errorf("Dependency error, %w", err)
 	}
 
+	// Mount the temporary file to the container.
+	volumeMount := fmt.Sprintf("%s:/app/script.py:ro", scriptPath)
+
 	args := []string{
 		"run",
 		"--rm",
+		"-v", volumeMount,
 		"--memory", c.MemoryLimit,
 		"--cpus", c.CPULimit,
 	}
@@ -49,7 +53,7 @@ func (c ContainerConfig) BuildDockerArgs(lang Language, code string, rawDeps str
 	case LangPython:
 		image := "jobqueue/python-runner:prewarmed"
 		cachedVolume := fmt.Sprintf("%s/python:/root/.cached/pip", c.CachedDir)
-		script := buildPythonScript(code, deps)
+		script := buildPythonScript(deps)
 
 		// Disable the network if there are no extra depenendicies that need to be downloaded.
 		if len(deps) == 0 {
@@ -65,7 +69,7 @@ func (c ContainerConfig) BuildDockerArgs(lang Language, code string, rawDeps str
 	case LangJavaScript:
 		image := "jobqueue/node-runner:prewarmed"
 		cachedVolume := fmt.Sprintf("%s/node:/root/.npm", c.CachedDir)
-		script := buildNodeScript(code, deps)
+		script := buildNodeScript(deps)
 
 		if len(deps) == 0 {
 			args = append(args, "--network", "none")
@@ -110,22 +114,22 @@ func ParseAndSanitizeDeps(raw string) ([]string, error) {
 	return clean, nil
 }
 
-func buildPythonScript(code string, deps []string) string {
+func buildPythonScript(deps []string) string {
 	// No dependencies.
 	if len(deps) == 0 {
-		return fmt.Sprintf("python3 -c %q", code)
+		return "python3 /app/script.py"
 	}
 
 	// Install the extra dependencies.
 	depsList := strings.Join(deps, " ")
-	return fmt.Sprintf("pip install --find--links=/root/.cache/pip %s && python3 -c %q", depsList, code)
+	return fmt.Sprintf("pip install --find-links=/root/.cache/pip %s && python3 /app/script.py", depsList)
 }
 
-func buildNodeScript(code string, deps []string) string {
+func buildNodeScript(deps []string) string {
 	if len(deps) == 0 {
-		return fmt.Sprintf("node -e %q", code)
+		return "node /app/script.py"
 	}
 
 	depsList := strings.Join(deps, " ")
-	return fmt.Sprintf("npm install --prefer-offline %s && node -e %q", depsList, code)
+	return fmt.Sprintf("npm install --prefer-offline %s && node /app/script.py", depsList)
 }

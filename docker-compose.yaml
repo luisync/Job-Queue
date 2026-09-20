@@ -1,20 +1,92 @@
 services:
+# Infrastructure services.
   postgres:
     image: postgres:16-alpine
     container_name: jobs-queue-postgres
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-jobs-queue}
     ports:
       - "5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d jobs-queue"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+  
   redis:
     image: redis:7-alpine
     container_name: jobs-queue-redis
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+
+# Application microservcices.
+  jobqueue-grpc:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        TARGET_CMD: jobqueue-grpc
+    container_name: jobqueue_grpc_service
+    ports:
+      - "9091:9091"
+    environment:
+      - GRPC_SERVER_ADDR=0.0.0.0:9091
+      - GOOSE_DBSTRING=host=postgres user=postgres password=postgres dbname=jobs-queue sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  jobqueue-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        TARGET_CMD: jobqueue-api
+    container_name: jobqueue_api_service
+    ports:
+      - "8080:8080"
+    environment:
+      - HTTP_SERVER_ADDR=0.0.0.0:8080
+      - GRPC_SERVER_ADDR=jobqueue-grpc:9091
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+  
+  jobqueue-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        TARGET_CMD: jobqueue-worker
+    container_name: jobqueue_worker_service
+    user: root
+    environment:
+      - REDIS_SERVER_ADDR=redis:6379
+      - REDIS_PASSWORD=
+      - GOOSE_DBSTRING=host=postgres user=postgres password=postgres dbname=jobs-queue sslmode=disable
+      - STREAM_KEY=jobs:stream
+      - GROUP_NAME=worker-group
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /tmp:/tmp
 
 volumes:
   postgres-data:
