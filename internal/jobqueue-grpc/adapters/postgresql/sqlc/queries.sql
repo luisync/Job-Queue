@@ -116,3 +116,16 @@ UPDATE jobs
 SET status=$1
 WHERE id = $2
 RETURNING *;
+
+-- name: SchedulerFetchAndLockPendingJobs :many
+UPDATE jobs
+SET status = 'running'
+WHERE id IN (
+    SELECT id
+    FROM jobs
+    WHERE status = 'pending'
+    ORDER BY created_at ASC
+    LIMIT $1
+    FOR UPDATE SKIP LOCKED
+)
+RETURNING id;

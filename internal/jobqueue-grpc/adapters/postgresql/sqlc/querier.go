@@ -24,6 +24,7 @@ type Querier interface {
 	// Jobs
 	ListJobs(ctx context.Context, creatorID pgtype.UUID) ([]Job, error)
 	RevokeSessions(ctx context.Context, userEmail string) ([]Session, error)
+	SchedulerFetchAndLockPendingJobs(ctx context.Context, limit int32) ([]pgtype.UUID, error)
 	// Private functions for workers.
 	WorkerCreateJobResult(ctx context.Context, arg WorkerCreateJobResultParams) (JobResult, error)
 	WorkerFindJobByID(ctx context.Context, id pgtype.UUID) (WorkerFindJobByIDRow, error)

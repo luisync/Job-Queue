@@ -364,6 +364,40 @@ func (q *Queries) RevokeSessions(ctx context.Context, userEmail string) ([]Sessi
 	return items, nil
 }
 
+const schedulerFetchAndLockPendingJobs = `-- name: SchedulerFetchAndLockPendingJobs :many
+UPDATE jobs
+SET status = 'running'
+WHERE id IN (
+    SELECT id
+    FROM jobs
+    WHERE status = 'pending'
+    ORDER BY created_at ASC
+    LIMIT $1
+    FOR UPDATE SKIP LOCKED
+)
+RETURNING id
+`
+
+func (q *Queries) SchedulerFetchAndLockPendingJobs(ctx context.Context, limit int32) ([]pgtype.UUID, error) {
+	rows, err := q.db.Query(ctx, schedulerFetchAndLockPendingJobs, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []pgtype.UUID
+	for rows.Next() {
+		var id pgtype.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const workerCreateJobResult = `-- name: WorkerCreateJobResult :one
 
 INSERT INTO job_results (
