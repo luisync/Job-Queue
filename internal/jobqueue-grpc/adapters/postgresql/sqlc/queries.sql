@@ -93,6 +93,29 @@ VALUES (
 ) 
 RETURNING *;
 
+-- Job results.
+
+-- name: ListJobResults :many
+SELECT
+    jr.output,
+    jr.created_at
+FROM job_results jr
+JOIN jobs j ON jr.job_id = j.id
+WHERE j.creator_id = $1
+    AND jr.job_id = $2
+ORDER BY jr.created_at DESC;
+
+-- name: FindLatestJobResult :one
+SELECT
+    jr.output,
+    jr.created_at
+FROM job_results jr
+JOIN jobs j ON jr.job_id = j.id
+WHERE j.creator_id = $1
+    AND jr.job_id = $2
+ORDER BY jr.created_at DESC
+LIMIT 1;
+
 -- Private functions for workers.
 
 -- name: WorkerCreateJobResult :one
@@ -116,6 +139,8 @@ UPDATE jobs
 SET status=$1
 WHERE id = $2
 RETURNING *;
+
+-- Private functions for the scheduled poller.
 
 -- name: SchedulerFetchAndLockPendingJobs :many
 UPDATE jobs

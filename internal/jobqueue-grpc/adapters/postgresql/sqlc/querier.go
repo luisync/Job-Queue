@@ -16,14 +16,18 @@ type Querier interface {
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	DeteleSessions(ctx context.Context, userEmail string) ([]Session, error)
 	FindJobByID(ctx context.Context, arg FindJobByIDParams) (Job, error)
+	FindLatestJobResult(ctx context.Context, arg FindLatestJobResultParams) (FindLatestJobResultRow, error)
 	// Sessions
 	FindSessionByID(ctx context.Context, id string) (Session, error)
 	FindSessionsByEmail(ctx context.Context, userEmail string) ([]Session, error)
 	// Users
 	FindUserByEmail(ctx context.Context, email string) (User, error)
+	// Job results.
+	ListJobResults(ctx context.Context, arg ListJobResultsParams) ([]ListJobResultsRow, error)
 	// Jobs
 	ListJobs(ctx context.Context, creatorID pgtype.UUID) ([]Job, error)
 	RevokeSessions(ctx context.Context, userEmail string) ([]Session, error)
+	// Private functions for the scheduled poller.
 	SchedulerFetchAndLockPendingJobs(ctx context.Context, limit int32) ([]pgtype.UUID, error)
 	// Private functions for workers.
 	WorkerCreateJobResult(ctx context.Context, arg WorkerCreateJobResultParams) (JobResult, error)

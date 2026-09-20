@@ -22,6 +22,8 @@ const (
 	Jobqueue_ListJobs_FullMethodName            = "/pb.jobqueue/ListJobs"
 	Jobqueue_FindJob_FullMethodName             = "/pb.jobqueue/FindJob"
 	Jobqueue_CreateJob_FullMethodName           = "/pb.jobqueue/CreateJob"
+	Jobqueue_ListJobResults_FullMethodName      = "/pb.jobqueue/ListJobResults"
+	Jobqueue_FindLatestJobResult_FullMethodName = "/pb.jobqueue/FindLatestJobResult"
 	Jobqueue_FindUserByEmail_FullMethodName     = "/pb.jobqueue/FindUserByEmail"
 	Jobqueue_Register_FullMethodName            = "/pb.jobqueue/Register"
 	Jobqueue_FindSessionByID_FullMethodName     = "/pb.jobqueue/FindSessionByID"
@@ -38,6 +40,8 @@ type JobqueueClient interface {
 	ListJobs(ctx context.Context, in *JobsReq, opts ...grpc.CallOption) (*ListJobsRes, error)
 	FindJob(ctx context.Context, in *FindJobReq, opts ...grpc.CallOption) (*JobsRes, error)
 	CreateJob(ctx context.Context, in *JobsReq, opts ...grpc.CallOption) (*JobsRes, error)
+	ListJobResults(ctx context.Context, in *JobResultsReq, opts ...grpc.CallOption) (*ListJobResultsRes, error)
+	FindLatestJobResult(ctx context.Context, in *JobResultsReq, opts ...grpc.CallOption) (*JobResultsRes, error)
 	FindUserByEmail(ctx context.Context, in *UsersReq, opts ...grpc.CallOption) (*UsersRes, error)
 	Register(ctx context.Context, in *UsersReq, opts ...grpc.CallOption) (*UsersRes, error)
 	FindSessionByID(ctx context.Context, in *SessionsReq, opts ...grpc.CallOption) (*SessionsRes, error)
@@ -79,6 +83,26 @@ func (c *jobqueueClient) CreateJob(ctx context.Context, in *JobsReq, opts ...grp
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(JobsRes)
 	err := c.cc.Invoke(ctx, Jobqueue_CreateJob_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *jobqueueClient) ListJobResults(ctx context.Context, in *JobResultsReq, opts ...grpc.CallOption) (*ListJobResultsRes, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListJobResultsRes)
+	err := c.cc.Invoke(ctx, Jobqueue_ListJobResults_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *jobqueueClient) FindLatestJobResult(ctx context.Context, in *JobResultsReq, opts ...grpc.CallOption) (*JobResultsRes, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(JobResultsRes)
+	err := c.cc.Invoke(ctx, Jobqueue_FindLatestJobResult_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -162,6 +186,8 @@ type JobqueueServer interface {
 	ListJobs(context.Context, *JobsReq) (*ListJobsRes, error)
 	FindJob(context.Context, *FindJobReq) (*JobsRes, error)
 	CreateJob(context.Context, *JobsReq) (*JobsRes, error)
+	ListJobResults(context.Context, *JobResultsReq) (*ListJobResultsRes, error)
+	FindLatestJobResult(context.Context, *JobResultsReq) (*JobResultsRes, error)
 	FindUserByEmail(context.Context, *UsersReq) (*UsersRes, error)
 	Register(context.Context, *UsersReq) (*UsersRes, error)
 	FindSessionByID(context.Context, *SessionsReq) (*SessionsRes, error)
@@ -187,6 +213,12 @@ func (UnimplementedJobqueueServer) FindJob(context.Context, *FindJobReq) (*JobsR
 }
 func (UnimplementedJobqueueServer) CreateJob(context.Context, *JobsReq) (*JobsRes, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateJob not implemented")
+}
+func (UnimplementedJobqueueServer) ListJobResults(context.Context, *JobResultsReq) (*ListJobResultsRes, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListJobResults not implemented")
+}
+func (UnimplementedJobqueueServer) FindLatestJobResult(context.Context, *JobResultsReq) (*JobResultsRes, error) {
+	return nil, status.Error(codes.Unimplemented, "method FindLatestJobResult not implemented")
 }
 func (UnimplementedJobqueueServer) FindUserByEmail(context.Context, *UsersReq) (*UsersRes, error) {
 	return nil, status.Error(codes.Unimplemented, "method FindUserByEmail not implemented")
@@ -280,6 +312,42 @@ func _Jobqueue_CreateJob_Handler(srv interface{}, ctx context.Context, dec func(
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(JobqueueServer).CreateJob(ctx, req.(*JobsReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Jobqueue_ListJobResults_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(JobResultsReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(JobqueueServer).ListJobResults(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Jobqueue_ListJobResults_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(JobqueueServer).ListJobResults(ctx, req.(*JobResultsReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Jobqueue_FindLatestJobResult_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(JobResultsReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(JobqueueServer).FindLatestJobResult(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Jobqueue_FindLatestJobResult_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(JobqueueServer).FindLatestJobResult(ctx, req.(*JobResultsReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -428,6 +496,14 @@ var Jobqueue_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CreateJob",
 			Handler:    _Jobqueue_CreateJob_Handler,
+		},
+		{
+			MethodName: "ListJobResults",
+			Handler:    _Jobqueue_ListJobResults_Handler,
+		},
+		{
+			MethodName: "FindLatestJobResult",
+			Handler:    _Jobqueue_FindLatestJobResult_Handler,
 		},
 		{
 			MethodName: "FindUserByEmail",

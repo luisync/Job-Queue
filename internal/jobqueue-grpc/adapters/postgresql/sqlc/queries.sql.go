@@ -214,6 +214,35 @@ func (q *Queries) FindJobByID(ctx context.Context, arg FindJobByIDParams) (Job, 
 	return i, err
 }
 
+const findLatestJobResult = `-- name: FindLatestJobResult :one
+SELECT
+    jr.output,
+    jr.created_at
+FROM job_results jr
+JOIN jobs j ON jr.job_id = j.id
+WHERE j.creator_id = $1
+    AND jr.job_id = $2
+ORDER BY jr.created_at DESC
+LIMIT 1
+`
+
+type FindLatestJobResultParams struct {
+	CreatorID pgtype.UUID `json:"creator_id"`
+	JobID     pgtype.UUID `json:"job_id"`
+}
+
+type FindLatestJobResultRow struct {
+	Output    string             `json:"output"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+}
+
+func (q *Queries) FindLatestJobResult(ctx context.Context, arg FindLatestJobResultParams) (FindLatestJobResultRow, error) {
+	row := q.db.QueryRow(ctx, findLatestJobResult, arg.CreatorID, arg.JobID)
+	var i FindLatestJobResultRow
+	err := row.Scan(&i.Output, &i.CreatedAt)
+	return i, err
+}
+
 const findSessionByID = `-- name: FindSessionByID :one
 
 SELECT id, user_email, refresh_token, is_revoked, created_at, expires_at 
@@ -293,6 +322,49 @@ func (q *Queries) FindUserByEmail(ctx context.Context, email string) (User, erro
 	return i, err
 }
 
+const listJobResults = `-- name: ListJobResults :many
+
+SELECT
+    jr.output,
+    jr.created_at
+FROM job_results jr
+JOIN jobs j ON jr.job_id = j.id
+WHERE j.creator_id = $1
+    AND jr.job_id = $2
+ORDER BY jr.created_at DESC
+`
+
+type ListJobResultsParams struct {
+	CreatorID pgtype.UUID `json:"creator_id"`
+	JobID     pgtype.UUID `json:"job_id"`
+}
+
+type ListJobResultsRow struct {
+	Output    string             `json:"output"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+}
+
+// Job results.
+func (q *Queries) ListJobResults(ctx context.Context, arg ListJobResultsParams) ([]ListJobResultsRow, error) {
+	rows, err := q.db.Query(ctx, listJobResults, arg.CreatorID, arg.JobID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListJobResultsRow
+	for rows.Next() {
+		var i ListJobResultsRow
+		if err := rows.Scan(&i.Output, &i.CreatedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listJobs = `-- name: ListJobs :many
 
 SELECT id, creator_id, language, dependencies, function, status, updated_at, created_at
@@ -365,6 +437,7 @@ func (q *Queries) RevokeSessions(ctx context.Context, userEmail string) ([]Sessi
 }
 
 const schedulerFetchAndLockPendingJobs = `-- name: SchedulerFetchAndLockPendingJobs :many
+
 UPDATE jobs
 SET status = 'running'
 WHERE id IN (
@@ -378,6 +451,7 @@ WHERE id IN (
 RETURNING id
 `
 
+// Private functions for the scheduled poller.
 func (q *Queries) SchedulerFetchAndLockPendingJobs(ctx context.Context, limit int32) ([]pgtype.UUID, error) {
 	rows, err := q.db.Query(ctx, schedulerFetchAndLockPendingJobs, limit)
 	if err != nil {

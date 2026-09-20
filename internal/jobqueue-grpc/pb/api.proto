@@ -35,8 +35,23 @@ message JobsRes {
     google.protobuf.Timestamp created_at = 8;
 }
 
+
 message ListJobsRes {
     repeated JobsRes jobs = 1;
+}
+
+message JobResultsReq {
+    string job_id = 2;
+    string creator_id = 1;
+}
+
+message JobResultsRes {
+    string output = 1;
+    google.protobuf.Timestamp created_at = 2;
+}
+
+message ListJobResultsRes {
+    repeated JobResultsRes job_results = 1;
 }
 
 message UsersReq {
@@ -84,6 +99,8 @@ service jobqueue {
     rpc ListJobs(JobsReq) returns (ListJobsRes) {}
 	rpc FindJob(FindJobReq) returns (JobsRes) {}
 	rpc CreateJob(JobsReq) returns (JobsRes) {}
+    rpc ListJobResults(JobResultsReq) returns (ListJobResultsRes) {}
+    rpc FindLatestJobResult(JobResultsReq) returns (JobResultsRes) {}
 
     rpc FindUserByEmail(UsersReq) returns (UsersRes) {}
 	rpc Register(UsersReq) returns (UsersRes) {}

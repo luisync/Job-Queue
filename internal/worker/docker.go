@@ -43,6 +43,7 @@ func (c ContainerConfig) BuildDockerArgs(lang Language, scriptPath string, rawDe
 	args := []string{
 		"run",
 		"--rm",
+		"-e", "PIP_ROOT_USER_ACTION=ignore",
 		"-v", volumeMount,
 		"--memory", c.MemoryLimit,
 		"--cpus", c.CPULimit,
@@ -52,7 +53,7 @@ func (c ContainerConfig) BuildDockerArgs(lang Language, scriptPath string, rawDe
 	switch lang {
 	case LangPython:
 		image := "jobqueue/python-runner:prewarmed"
-		cachedVolume := fmt.Sprintf("%s/python:/root/.cached/pip", c.CachedDir)
+		cachedVolume := fmt.Sprintf("%s/python:/root/.cache/pip", c.CachedDir)
 		script := buildPythonScript(deps)
 
 		// Disable the network if there are no extra depenendicies that need to be downloaded.
@@ -122,7 +123,7 @@ func buildPythonScript(deps []string) string {
 
 	// Install the extra dependencies.
 	depsList := strings.Join(deps, " ")
-	return fmt.Sprintf("pip install --find-links=/root/.cache/pip %s && python3 /app/script.py", depsList)
+	return fmt.Sprintf("pip install --quiet --no-warn-script-location --disable-pip-version-check --find-links=file:///root/.cache/pip %s && python3 /app/script.py", depsList)
 }
 
 func buildNodeScript(deps []string) string {

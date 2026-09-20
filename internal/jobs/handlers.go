@@ -133,3 +133,54 @@ func (h *handler) CreateJob(w http.ResponseWriter, r *http.Request) {
 
 	json.Write(w, http.StatusCreated, createdJob)
 }
+
+// List all results of a job that was created by the user that's currently logged in.
+func (h *handler) ListJobResults(w http.ResponseWriter, r *http.Request) {
+	// Get job id from the URL.
+	jobID := chi.URLParam(r, "jobID")
+
+	creatorID, err := users.GetUserIDFromContext(r.Context())
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "Server error, please try again later.", http.StatusInternalServerError)
+		return
+	}
+
+	// Get user jobs.
+	jobs, err := h.client.ListJobResults(r.Context(), &pb.JobResultsReq{
+		JobId:     jobID,
+		CreatorId: creatorID.String(),
+	})
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	json.Write(w, http.StatusOK, jobs)
+}
+
+// Find the latest job result from the user that's currently logged in.
+func (h *handler) FindLatestJobResult(w http.ResponseWriter, r *http.Request) {
+	jobID := chi.URLParam(r, "jobID")
+
+	creatorID, err := users.GetUserIDFromContext(r.Context())
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "Server error, please try again later.", http.StatusInternalServerError)
+		return
+	}
+
+	// Get user jobs.
+	job, err := h.client.FindLatestJobResult(r.Context(), &pb.JobResultsReq{
+		CreatorId: creatorID.String(),
+		JobId:     jobID,
+	})
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	json.Write(w, http.StatusOK, job)
+}

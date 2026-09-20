@@ -22,7 +22,6 @@ func NewServer(repo repo.Querier) *Server {
 }
 
 // Jobs server.
-
 func (s *Server) ListJobs(ctx context.Context, req *pb.JobsReq) (*pb.ListJobsRes, error) {
 	creatorID, err := toUUID(req.GetCreatorId())
 	if err != nil {
@@ -110,6 +109,64 @@ func (s *Server) CreateJob(ctx context.Context, req *pb.JobsReq) (*pb.JobsRes, e
 		Status:       string(createdJob.Status),
 		UpdatedAt:    timestamppb.New(createdJob.UpdatedAt.Time),
 		CreatedAt:    timestamppb.New(createdJob.CreatedAt.Time),
+	}, nil
+}
+
+// Job results server.
+func (s *Server) ListJobResults(ctx context.Context, req *pb.JobResultsReq) (*pb.ListJobResultsRes, error) {
+	creatorID, err := toUUID(req.CreatorId)
+	if err != nil {
+		return &pb.ListJobResultsRes{}, fmt.Errorf("Invalid creator id, %w", err)
+	}
+
+	jobID, err := toUUID(req.JobId)
+	if err != nil {
+		return &pb.ListJobResultsRes{}, fmt.Errorf("Invalid job id, %w", err)
+	}
+
+	jobs, err := s.repo.ListJobResults(ctx, repo.ListJobResultsParams{
+		CreatorID: creatorID,
+		JobID:     jobID,
+	})
+	if err != nil {
+		return &pb.ListJobResultsRes{}, fmt.Errorf("Error creating the job, %w", err)
+	}
+
+	jobsRes := make([]*pb.JobResultsRes, 0, len(jobs))
+	for _, job := range jobs {
+		jobsRes = append(jobsRes, &pb.JobResultsRes{
+			Output:    job.Output,
+			CreatedAt: timestamppb.New(job.CreatedAt.Time),
+		})
+	}
+
+	return &pb.ListJobResultsRes{
+		JobResults: jobsRes,
+	}, nil
+}
+
+func (s *Server) FindLatestJobResult(ctx context.Context, req *pb.JobResultsReq) (*pb.JobResultsRes, error) {
+	creatorID, err := toUUID(req.CreatorId)
+	if err != nil {
+		return &pb.JobResultsRes{}, fmt.Errorf("Invalid creator id, %w", err)
+	}
+
+	jobID, err := toUUID(req.JobId)
+	if err != nil {
+		return &pb.JobResultsRes{}, fmt.Errorf("Invalid job id, %w", err)
+	}
+
+	job, err := s.repo.FindLatestJobResult(ctx, repo.FindLatestJobResultParams{
+		CreatorID: creatorID,
+		JobID:     jobID,
+	})
+	if err != nil {
+		return &pb.JobResultsRes{}, fmt.Errorf("Error finding the latest job response, %w", err)
+	}
+
+	return &pb.JobResultsRes{
+		Output:    job.Output,
+		CreatedAt: timestamppb.New(job.CreatedAt.Time),
 	}, nil
 }
 

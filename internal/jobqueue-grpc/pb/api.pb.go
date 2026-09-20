@@ -332,6 +332,154 @@ func (x *ListJobsRes) GetJobs() []*JobsRes {
 	return nil
 }
 
+type JobResultsReq struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	JobId         string                 `protobuf:"bytes,2,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
+	CreatorId     string                 `protobuf:"bytes,1,opt,name=creator_id,json=creatorId,proto3" json:"creator_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *JobResultsReq) Reset() {
+	*x = JobResultsReq{}
+	mi := &file_api_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *JobResultsReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*JobResultsReq) ProtoMessage() {}
+
+func (x *JobResultsReq) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use JobResultsReq.ProtoReflect.Descriptor instead.
+func (*JobResultsReq) Descriptor() ([]byte, []int) {
+	return file_api_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *JobResultsReq) GetJobId() string {
+	if x != nil {
+		return x.JobId
+	}
+	return ""
+}
+
+func (x *JobResultsReq) GetCreatorId() string {
+	if x != nil {
+		return x.CreatorId
+	}
+	return ""
+}
+
+type JobResultsRes struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Output        string                 `protobuf:"bytes,1,opt,name=output,proto3" json:"output,omitempty"`
+	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *JobResultsRes) Reset() {
+	*x = JobResultsRes{}
+	mi := &file_api_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *JobResultsRes) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*JobResultsRes) ProtoMessage() {}
+
+func (x *JobResultsRes) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use JobResultsRes.ProtoReflect.Descriptor instead.
+func (*JobResultsRes) Descriptor() ([]byte, []int) {
+	return file_api_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *JobResultsRes) GetOutput() string {
+	if x != nil {
+		return x.Output
+	}
+	return ""
+}
+
+func (x *JobResultsRes) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+type ListJobResultsRes struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	JobResults    []*JobResultsRes       `protobuf:"bytes,1,rep,name=job_results,json=jobResults,proto3" json:"job_results,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListJobResultsRes) Reset() {
+	*x = ListJobResultsRes{}
+	mi := &file_api_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListJobResultsRes) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListJobResultsRes) ProtoMessage() {}
+
+func (x *ListJobResultsRes) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListJobResultsRes.ProtoReflect.Descriptor instead.
+func (*ListJobResultsRes) Descriptor() ([]byte, []int) {
+	return file_api_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *ListJobResultsRes) GetJobResults() []*JobResultsRes {
+	if x != nil {
+		return x.JobResults
+	}
+	return nil
+}
+
 type UsersReq struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	FirstName     string                 `protobuf:"bytes,2,opt,name=first_name,json=firstName,proto3" json:"first_name,omitempty"`
@@ -345,7 +493,7 @@ type UsersReq struct {
 
 func (x *UsersReq) Reset() {
 	*x = UsersReq{}
-	mi := &file_api_proto_msgTypes[5]
+	mi := &file_api_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -357,7 +505,7 @@ func (x *UsersReq) String() string {
 func (*UsersReq) ProtoMessage() {}
 
 func (x *UsersReq) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[5]
+	mi := &file_api_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -370,7 +518,7 @@ func (x *UsersReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UsersReq.ProtoReflect.Descriptor instead.
 func (*UsersReq) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{5}
+	return file_api_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *UsersReq) GetFirstName() string {
@@ -424,7 +572,7 @@ type UsersRes struct {
 
 func (x *UsersRes) Reset() {
 	*x = UsersRes{}
-	mi := &file_api_proto_msgTypes[6]
+	mi := &file_api_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -436,7 +584,7 @@ func (x *UsersRes) String() string {
 func (*UsersRes) ProtoMessage() {}
 
 func (x *UsersRes) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[6]
+	mi := &file_api_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -449,7 +597,7 @@ func (x *UsersRes) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UsersRes.ProtoReflect.Descriptor instead.
 func (*UsersRes) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{6}
+	return file_api_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *UsersRes) GetId() string {
@@ -521,7 +669,7 @@ type SessionsReq struct {
 
 func (x *SessionsReq) Reset() {
 	*x = SessionsReq{}
-	mi := &file_api_proto_msgTypes[7]
+	mi := &file_api_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -533,7 +681,7 @@ func (x *SessionsReq) String() string {
 func (*SessionsReq) ProtoMessage() {}
 
 func (x *SessionsReq) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[7]
+	mi := &file_api_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -546,7 +694,7 @@ func (x *SessionsReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SessionsReq.ProtoReflect.Descriptor instead.
 func (*SessionsReq) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{7}
+	return file_api_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *SessionsReq) GetId() string {
@@ -598,7 +746,7 @@ type SessionsRes struct {
 
 func (x *SessionsRes) Reset() {
 	*x = SessionsRes{}
-	mi := &file_api_proto_msgTypes[8]
+	mi := &file_api_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -610,7 +758,7 @@ func (x *SessionsRes) String() string {
 func (*SessionsRes) ProtoMessage() {}
 
 func (x *SessionsRes) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[8]
+	mi := &file_api_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -623,7 +771,7 @@ func (x *SessionsRes) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SessionsRes.ProtoReflect.Descriptor instead.
 func (*SessionsRes) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{8}
+	return file_api_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *SessionsRes) GetId() string {
@@ -677,7 +825,7 @@ type ListSessionsRes struct {
 
 func (x *ListSessionsRes) Reset() {
 	*x = ListSessionsRes{}
-	mi := &file_api_proto_msgTypes[9]
+	mi := &file_api_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -689,7 +837,7 @@ func (x *ListSessionsRes) String() string {
 func (*ListSessionsRes) ProtoMessage() {}
 
 func (x *ListSessionsRes) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[9]
+	mi := &file_api_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -702,7 +850,7 @@ func (x *ListSessionsRes) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListSessionsRes.ProtoReflect.Descriptor instead.
 func (*ListSessionsRes) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{9}
+	return file_api_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *ListSessionsRes) GetSessions() []*SessionsRes {
@@ -743,7 +891,18 @@ const file_api_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\".\n" +
 	"\vListJobsRes\x12\x1f\n" +
-	"\x04jobs\x18\x01 \x03(\v2\v.pb.JobsResR\x04jobs\"\x94\x01\n" +
+	"\x04jobs\x18\x01 \x03(\v2\v.pb.JobsResR\x04jobs\"E\n" +
+	"\rJobResultsReq\x12\x15\n" +
+	"\x06job_id\x18\x02 \x01(\tR\x05jobId\x12\x1d\n" +
+	"\n" +
+	"creator_id\x18\x01 \x01(\tR\tcreatorId\"b\n" +
+	"\rJobResultsRes\x12\x16\n" +
+	"\x06output\x18\x01 \x01(\tR\x06output\x129\n" +
+	"\n" +
+	"created_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"G\n" +
+	"\x11ListJobResultsRes\x122\n" +
+	"\vjob_results\x18\x01 \x03(\v2\x11.pb.JobResultsResR\n" +
+	"jobResults\"\x94\x01\n" +
 	"\bUsersReq\x12\x1d\n" +
 	"\n" +
 	"first_name\x18\x02 \x01(\tR\tfirstName\x12\x1b\n" +
@@ -784,11 +943,13 @@ const file_api_proto_rawDesc = "" +
 	"\n" +
 	"expires_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\">\n" +
 	"\x0fListSessionsRes\x12+\n" +
-	"\bsessions\x18\x01 \x03(\v2\x0f.pb.SessionsResR\bsessions2\x83\x04\n" +
+	"\bsessions\x18\x01 \x03(\v2\x0f.pb.SessionsResR\bsessions2\x80\x05\n" +
 	"\bjobqueue\x12*\n" +
 	"\bListJobs\x12\v.pb.JobsReq\x1a\x0f.pb.ListJobsRes\"\x00\x12(\n" +
 	"\aFindJob\x12\x0e.pb.FindJobReq\x1a\v.pb.JobsRes\"\x00\x12'\n" +
-	"\tCreateJob\x12\v.pb.JobsReq\x1a\v.pb.JobsRes\"\x00\x12/\n" +
+	"\tCreateJob\x12\v.pb.JobsReq\x1a\v.pb.JobsRes\"\x00\x12<\n" +
+	"\x0eListJobResults\x12\x11.pb.JobResultsReq\x1a\x15.pb.ListJobResultsRes\"\x00\x12=\n" +
+	"\x13FindLatestJobResult\x12\x11.pb.JobResultsReq\x1a\x11.pb.JobResultsRes\"\x00\x12/\n" +
 	"\x0fFindUserByEmail\x12\f.pb.UsersReq\x1a\f.pb.UsersRes\"\x00\x12(\n" +
 	"\bRegister\x12\f.pb.UsersReq\x1a\f.pb.UsersRes\"\x00\x125\n" +
 	"\x0fFindSessionByID\x12\x0f.pb.SessionsReq\x1a\x0f.pb.SessionsRes\"\x00\x12=\n" +
@@ -809,56 +970,65 @@ func file_api_proto_rawDescGZIP() []byte {
 	return file_api_proto_rawDescData
 }
 
-var file_api_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_api_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_api_proto_goTypes = []any{
 	(*Job)(nil),                   // 0: pb.Job
 	(*JobsReq)(nil),               // 1: pb.JobsReq
 	(*FindJobReq)(nil),            // 2: pb.FindJobReq
 	(*JobsRes)(nil),               // 3: pb.JobsRes
 	(*ListJobsRes)(nil),           // 4: pb.ListJobsRes
-	(*UsersReq)(nil),              // 5: pb.UsersReq
-	(*UsersRes)(nil),              // 6: pb.UsersRes
-	(*SessionsReq)(nil),           // 7: pb.SessionsReq
-	(*SessionsRes)(nil),           // 8: pb.SessionsRes
-	(*ListSessionsRes)(nil),       // 9: pb.ListSessionsRes
-	(*timestamppb.Timestamp)(nil), // 10: google.protobuf.Timestamp
+	(*JobResultsReq)(nil),         // 5: pb.JobResultsReq
+	(*JobResultsRes)(nil),         // 6: pb.JobResultsRes
+	(*ListJobResultsRes)(nil),     // 7: pb.ListJobResultsRes
+	(*UsersReq)(nil),              // 8: pb.UsersReq
+	(*UsersRes)(nil),              // 9: pb.UsersRes
+	(*SessionsReq)(nil),           // 10: pb.SessionsReq
+	(*SessionsRes)(nil),           // 11: pb.SessionsRes
+	(*ListSessionsRes)(nil),       // 12: pb.ListSessionsRes
+	(*timestamppb.Timestamp)(nil), // 13: google.protobuf.Timestamp
 }
 var file_api_proto_depIdxs = []int32{
 	0,  // 0: pb.JobsReq.job:type_name -> pb.Job
-	10, // 1: pb.JobsRes.updated_at:type_name -> google.protobuf.Timestamp
-	10, // 2: pb.JobsRes.created_at:type_name -> google.protobuf.Timestamp
+	13, // 1: pb.JobsRes.updated_at:type_name -> google.protobuf.Timestamp
+	13, // 2: pb.JobsRes.created_at:type_name -> google.protobuf.Timestamp
 	3,  // 3: pb.ListJobsRes.jobs:type_name -> pb.JobsRes
-	10, // 4: pb.UsersRes.updated_at:type_name -> google.protobuf.Timestamp
-	10, // 5: pb.UsersRes.created_at:type_name -> google.protobuf.Timestamp
-	10, // 6: pb.SessionsReq.expires_at:type_name -> google.protobuf.Timestamp
-	10, // 7: pb.SessionsRes.created_at:type_name -> google.protobuf.Timestamp
-	10, // 8: pb.SessionsRes.expires_at:type_name -> google.protobuf.Timestamp
-	8,  // 9: pb.ListSessionsRes.sessions:type_name -> pb.SessionsRes
-	1,  // 10: pb.jobqueue.ListJobs:input_type -> pb.JobsReq
-	2,  // 11: pb.jobqueue.FindJob:input_type -> pb.FindJobReq
-	1,  // 12: pb.jobqueue.CreateJob:input_type -> pb.JobsReq
-	5,  // 13: pb.jobqueue.FindUserByEmail:input_type -> pb.UsersReq
-	5,  // 14: pb.jobqueue.Register:input_type -> pb.UsersReq
-	7,  // 15: pb.jobqueue.FindSessionByID:input_type -> pb.SessionsReq
-	7,  // 16: pb.jobqueue.FindSessionsByEmail:input_type -> pb.SessionsReq
-	7,  // 17: pb.jobqueue.RevokeSessions:input_type -> pb.SessionsReq
-	7,  // 18: pb.jobqueue.DeteleSessions:input_type -> pb.SessionsReq
-	7,  // 19: pb.jobqueue.CreateSession:input_type -> pb.SessionsReq
-	4,  // 20: pb.jobqueue.ListJobs:output_type -> pb.ListJobsRes
-	3,  // 21: pb.jobqueue.FindJob:output_type -> pb.JobsRes
-	3,  // 22: pb.jobqueue.CreateJob:output_type -> pb.JobsRes
-	6,  // 23: pb.jobqueue.FindUserByEmail:output_type -> pb.UsersRes
-	6,  // 24: pb.jobqueue.Register:output_type -> pb.UsersRes
-	8,  // 25: pb.jobqueue.FindSessionByID:output_type -> pb.SessionsRes
-	9,  // 26: pb.jobqueue.FindSessionsByEmail:output_type -> pb.ListSessionsRes
-	9,  // 27: pb.jobqueue.RevokeSessions:output_type -> pb.ListSessionsRes
-	9,  // 28: pb.jobqueue.DeteleSessions:output_type -> pb.ListSessionsRes
-	8,  // 29: pb.jobqueue.CreateSession:output_type -> pb.SessionsRes
-	20, // [20:30] is the sub-list for method output_type
-	10, // [10:20] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	13, // 4: pb.JobResultsRes.created_at:type_name -> google.protobuf.Timestamp
+	6,  // 5: pb.ListJobResultsRes.job_results:type_name -> pb.JobResultsRes
+	13, // 6: pb.UsersRes.updated_at:type_name -> google.protobuf.Timestamp
+	13, // 7: pb.UsersRes.created_at:type_name -> google.protobuf.Timestamp
+	13, // 8: pb.SessionsReq.expires_at:type_name -> google.protobuf.Timestamp
+	13, // 9: pb.SessionsRes.created_at:type_name -> google.protobuf.Timestamp
+	13, // 10: pb.SessionsRes.expires_at:type_name -> google.protobuf.Timestamp
+	11, // 11: pb.ListSessionsRes.sessions:type_name -> pb.SessionsRes
+	1,  // 12: pb.jobqueue.ListJobs:input_type -> pb.JobsReq
+	2,  // 13: pb.jobqueue.FindJob:input_type -> pb.FindJobReq
+	1,  // 14: pb.jobqueue.CreateJob:input_type -> pb.JobsReq
+	5,  // 15: pb.jobqueue.ListJobResults:input_type -> pb.JobResultsReq
+	5,  // 16: pb.jobqueue.FindLatestJobResult:input_type -> pb.JobResultsReq
+	8,  // 17: pb.jobqueue.FindUserByEmail:input_type -> pb.UsersReq
+	8,  // 18: pb.jobqueue.Register:input_type -> pb.UsersReq
+	10, // 19: pb.jobqueue.FindSessionByID:input_type -> pb.SessionsReq
+	10, // 20: pb.jobqueue.FindSessionsByEmail:input_type -> pb.SessionsReq
+	10, // 21: pb.jobqueue.RevokeSessions:input_type -> pb.SessionsReq
+	10, // 22: pb.jobqueue.DeteleSessions:input_type -> pb.SessionsReq
+	10, // 23: pb.jobqueue.CreateSession:input_type -> pb.SessionsReq
+	4,  // 24: pb.jobqueue.ListJobs:output_type -> pb.ListJobsRes
+	3,  // 25: pb.jobqueue.FindJob:output_type -> pb.JobsRes
+	3,  // 26: pb.jobqueue.CreateJob:output_type -> pb.JobsRes
+	7,  // 27: pb.jobqueue.ListJobResults:output_type -> pb.ListJobResultsRes
+	6,  // 28: pb.jobqueue.FindLatestJobResult:output_type -> pb.JobResultsRes
+	9,  // 29: pb.jobqueue.FindUserByEmail:output_type -> pb.UsersRes
+	9,  // 30: pb.jobqueue.Register:output_type -> pb.UsersRes
+	11, // 31: pb.jobqueue.FindSessionByID:output_type -> pb.SessionsRes
+	12, // 32: pb.jobqueue.FindSessionsByEmail:output_type -> pb.ListSessionsRes
+	12, // 33: pb.jobqueue.RevokeSessions:output_type -> pb.ListSessionsRes
+	12, // 34: pb.jobqueue.DeteleSessions:output_type -> pb.ListSessionsRes
+	11, // 35: pb.jobqueue.CreateSession:output_type -> pb.SessionsRes
+	24, // [24:36] is the sub-list for method output_type
+	12, // [12:24] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_api_proto_init() }
@@ -872,7 +1042,7 @@ func file_api_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_proto_rawDesc), len(file_api_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   10,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
