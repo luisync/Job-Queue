@@ -10,4 +10,4 @@ RUN pip install --no-cache-dir \
     urllib3 \
     python-dateutil
 
-WORKDIR /workspace
+WORKDIR /app

@@ -37,14 +37,10 @@ func (c ContainerConfig) BuildDockerArgs(lang Language, scriptPath string, rawDe
 		return nil, fmt.Errorf("Dependency error, %w", err)
 	}
 
-	// Mount the temporary file to the container.
-	volumeMount := fmt.Sprintf("%s:/app/script.py:ro", scriptPath)
-
 	args := []string{
 		"run",
 		"--rm",
 		"-e", "PIP_ROOT_USER_ACTION=ignore",
-		"-v", volumeMount,
 		"--memory", c.MemoryLimit,
 		"--cpus", c.CPULimit,
 	}
@@ -53,7 +49,11 @@ func (c ContainerConfig) BuildDockerArgs(lang Language, scriptPath string, rawDe
 	switch lang {
 	case LangPython:
 		image := "jobqueue/python-runner:prewarmed"
+
+		// Mount the temporary file to the container.
+		volumeMount := fmt.Sprintf("%s:/app/script.py:ro", scriptPath)
 		cachedVolume := fmt.Sprintf("%s/python:/root/.cache/pip", c.CachedDir)
+
 		script := buildPythonScript(deps)
 
 		// Disable the network if there are no extra depenendicies that need to be downloaded.
@@ -65,11 +65,15 @@ func (c ContainerConfig) BuildDockerArgs(lang Language, scriptPath string, rawDe
 		}
 
 		// Run the script with the dependencies.
+		args = append(args, "-v", volumeMount)
 		args = append(args, image, "sh", "-c", script)
 
 	case LangJavaScript:
 		image := "jobqueue/node-runner:prewarmed"
+
+		volumeMount := fmt.Sprintf("%s:/app/script.js:ro", scriptPath)
 		cachedVolume := fmt.Sprintf("%s/node:/root/.npm", c.CachedDir)
+
 		script := buildNodeScript(deps)
 
 		if len(deps) == 0 {
@@ -78,6 +82,7 @@ func (c ContainerConfig) BuildDockerArgs(lang Language, scriptPath string, rawDe
 			args = append(args, "-v", cachedVolume)
 		}
 
+		args = append(args, "-v", volumeMount)
 		args = append(args, image, "sh", "-c", script)
 	default:
 		return nil, fmt.Errorf("Unsuported language, %s", lang)
@@ -128,9 +133,9 @@ func buildPythonScript(deps []string) string {
 
 func buildNodeScript(deps []string) string {
 	if len(deps) == 0 {
-		return "node /app/script.py"
+		return "node /app/script.js"
 	}
 
 	depsList := strings.Join(deps, " ")
-	return fmt.Sprintf("npm install --prefer-offline %s && node /app/script.py", depsList)
+	return fmt.Sprintf("npm install --prefer-offline %s && node /app/script.js", depsList)
 }

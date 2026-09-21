@@ -1,3 +1,5 @@
+# Image of the job queue application.
+
 FROM golang:1.27-alpine AS builder
 
 WORKDIR /app

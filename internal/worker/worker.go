@@ -181,10 +181,24 @@ func (w *worker) execute(ctx context.Context, job *repo.WorkerFindJobByIDRow, jo
 	// Set up Docker container.
 	scriptCode := decodeFunction(job.Function)
 
-	// Temporary file containing the job's code to prevent escape characters from bugging the program.
-	tmpFile, err := os.CreateTemp("", "job-*.py")
+	// Temporary file containing the job's code to prevent escape characters from bugging program execution.
+	lang := Language(job.Language)
+	var fileExt string
+
+	switch lang {
+	case LangPython:
+		fileExt = ".py"
+	case LangJavaScript:
+		fileExt = ".js"
+	default:
+		return fmt.Errorf("Unsuported language.")
+	}
+
+	fileExt = fmt.Sprintf("job-*%s", fileExt)
+
+	tmpFile, err := os.CreateTemp("", fileExt)
 	if err != nil {
-		return fmt.Errorf("Failed to create temporary fiule, %w", err)
+		return fmt.Errorf("Failed to create temporary file, %w", err)
 	}
 	defer os.Remove(tmpFile.Name())
 
