@@ -1,0 +1,106 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_requests:
+    branches: [ "main" ]
+
+jobs:
+  # Set up the databases and run the application.
+  test:
+    name: Run Tests and Linting
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: ${POSTGRES_USER:-postgres}
+          POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+          POSTGRES_DB: ${POSTGRES_DB:-jobs-queue}
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      
+    steps:
+      - name: Check out code
+        uses: actions/checkout@4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.27'
+          cache: true
+      
+      - name: Install dependencies
+        run: go mod download
+
+      - name: Run Go tests
+        uses: go test -v ./..
+      
+  build-images:
+    name: Verify Docker images can be built
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Build API image
+        with:
+          context: .
+          file: ./Dockerfile
+          build-args: TARGET-CMD=jobqueue-api
+          push: false
+      
+      - name: Build gRPC image
+        with:
+          context: .
+          file: ./Dockerfile
+          build-args: TARGET-CMD=jobqueue-grpc
+          push: false
+      
+      - name: Build Worker image
+        with:
+          context: .
+          file: ./Dockerfile
+          build-args: TARGET-CMD=jobqueue-worker
+          push: false
+      
+      # Build prewarmed images.
+      - name: Build prewarmed Python image
+        ueses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./DockerFile.python-prewarmed
+          tags: jobsqueue/python-runner:prewarmed
+          push: false
+      
+      - name: Build prewarmed Node image
+        ueses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./DockerFile.node-prewarmed
+          tags: jobsqueue/node-runner:prewarmed
+          push: false
+          
+

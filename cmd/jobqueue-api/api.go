@@ -26,9 +26,12 @@ func (app *application) mount() http.Handler {
 	// Time out a request after 60 seconds.
 	r.Use(middleware.Timeout(60 * time.Second))
 
-	// Routes.
-	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("all good"))
+	// Routes for health checks.
+	r.Get("/readyz", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("raedy"))
+	})
+	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("ok"))
 	})
 
 	// Create handlers, services, and repository.

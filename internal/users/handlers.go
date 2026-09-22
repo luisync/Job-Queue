@@ -129,7 +129,7 @@ func (h *handler) Login(w http.ResponseWriter, r *http.Request) {
 	// Create access token.
 	var userID pgtype.UUID
 	if err := userID.Scan(user.Id); err != nil {
-		log.Printf("Error converting id into uuid, %w", err)
+		log.Printf("Error converting id into uuid", err)
 		http.Error(w, "Server error, please try again later.", http.StatusInternalServerError)
 		return
 	}
