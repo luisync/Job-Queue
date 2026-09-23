@@ -28,7 +28,7 @@ func (app *application) mount() http.Handler {
 
 	// Routes for health checks.
 	r.Get("/readyz", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("raedy"))
+		w.Write([]byte("ready"))
 	})
 	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("ok"))

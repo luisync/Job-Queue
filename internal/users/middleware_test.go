@@ -23,55 +23,74 @@ func TestGetAuthMiddlewareFunc(t *testing.T) {
 	token, acClaims, err := tokenMaker.CreateToken(userID, "williamemail@gmail.com", 15*time.Minute)
 	require.NoError(t, err)
 
-	// Create the next handler the middlware will call.
-	nextHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		claims := r.Context().Value(AuthKey{})
-
-		// Verify that the middleware stored the correct values.
-		assert.Equal(t, acClaims, claims)
-
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("User authenticated"))
-	})
-
-	// Get the authentication function and create the middleware.
+	// Get the authentication function.
 	authFunc := GetAuthMiddlewareFunc(tokenMaker)
-	authHandler := authFunc(nextHandler)
 
 	tests := []struct {
-		name           string
-		body           func(r *http.Request)
-		expectedStatus int
+		name       string
+		body       func(r *http.Request)
+		exptStatus int
+		exptCall   bool
+		wantErr    bool
 	}{
 		{
 			name: "OK - Valid token",
 			body: func(r *http.Request) {
-				r.Header.Set("Authorization", "Bearer"+token)
+				r.Header.Set("Authorization", "Bearer "+token)
 			},
-			expectedStatus: http.StatusOK,
+			exptStatus: http.StatusOK,
+			exptCall:   true,
+			wantErr:    false,
 		},
 		{
 			name: "Unauthorized - Invalid token",
 			body: func(r *http.Request) {
-				r.Header.Set("Authorization", "Bearer"+"12345")
+				r.Header.Set("Authorization", "Bearer "+"12345")
 			},
-			expectedStatus: http.StatusUnauthorized,
+			exptStatus: http.StatusUnauthorized,
+			exptCall:   false,
+			wantErr:    true,
 		},
 		{
-			name:           "Unauthorized - Missing token",
-			body:           func(r *http.Request) {},
-			expectedStatus: http.StatusUnauthorized,
+			name:       "Unauthorized - Missing token",
+			body:       func(r *http.Request) {},
+			exptStatus: http.StatusUnauthorized,
+			exptCall:   false,
+			wantErr:    true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			actualCall := false
+
+			// Create the next handler the middlware will call.
+			nextHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				actualCall = true
+				claims := r.Context().Value(AuthKey{})
+
+				// Verify that the middleware stored the correct values.
+				assert.Equal(t, acClaims, claims)
+
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte("User authenticated"))
+			})
+
+			// Create the middleware.
+			authHandler := authFunc(nextHandler)
+
 			req := httptest.NewRequest(http.MethodPost, "/account/login", nil)
 			res := httptest.NewRecorder()
 			tt.body(req)
 
 			authHandler.ServeHTTP(res, req)
-			assert.Equal(t, tt.expectedStatus, res.Code)
+
+			assert.Equal(t, tt.exptStatus, res.Code)
+			assert.Equal(t, tt.exptCall, actualCall)
+
+			if tt.wantErr {
+				assert.Contains(t, res.Body.String(), "Error verifying token.")
+			}
 		})
 	}
 }
