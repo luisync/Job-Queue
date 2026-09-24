@@ -19,14 +19,21 @@ import (
 // Handlers depend on the services.
 type handler struct {
 	client     pb.JobqueueClient
-	TokenMaker *token.JWTMaker
+	TokenMaker token.TokenMaker
 }
 
 // Constructor for creating the handlers.
-func NewHandler(client pb.JobqueueClient, secretKey string) *handler {
+func NewHandlerWithKey(client pb.JobqueueClient, secretKey string) *handler {
 	return &handler{
 		client:     client,
 		TokenMaker: token.NewJWTMaker(secretKey),
+	}
+}
+
+func NewHandlerWithTokenMaker(client pb.JobqueueClient, tokenMaker token.TokenMaker) *handler {
+	return &handler{
+		client:     client,
+		TokenMaker: tokenMaker,
 	}
 }
 

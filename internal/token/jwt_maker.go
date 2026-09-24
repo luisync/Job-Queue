@@ -8,6 +8,11 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type TokenMaker interface {
+	CreateToken(id pgtype.UUID, email string, duration time.Duration) (string, *UserClaims, error)
+	VerfifyToken(tokenStr string) (*UserClaims, error)
+}
+
 // Generator for creating JWTs.
 type JWTMaker struct {
 	secretKey string
