@@ -49,7 +49,7 @@ func (h *handler) Register(w http.ResponseWriter, r *http.Request) {
 
 	// Validade input.
 	if len(newUser.Email) == 0 || len(newUser.Username) == 0 || len(newUser.Password) == 0 || len(newUser.First_name) == 0 || len(newUser.Last_name) == 0 {
-		log.Printf("Empty Creadentails.")
+		log.Printf("Empty credentials.")
 		http.Error(w, "Please fill in all of the required fields.", http.StatusBadRequest)
 		return
 	}
@@ -111,7 +111,7 @@ func (h *handler) Login(w http.ResponseWriter, r *http.Request) {
 
 	// Validade input.
 	if len(userDetails.Email) == 0 || len(userDetails.Password) == 0 {
-		log.Printf("Empty Creadentails.")
+		log.Printf("Empty credentials.")
 		http.Error(w, "Please fill in all of the required fields.", http.StatusBadRequest)
 		return
 	}
@@ -290,7 +290,7 @@ func (h *handler) RevokeSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	json.Write(w, http.StatusNoContent, revokedSession)
+	json.Write(w, http.StatusOK, revokedSession)
 }
 
 // Get the id of the user that's currently logged in.

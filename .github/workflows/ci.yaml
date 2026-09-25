@@ -51,7 +51,7 @@ jobs:
         run: go mod download
 
       - name: Run Go tests
-        uses: go test -v ./..
+        uses: go test -v ./...
       
   build-images:
     name: Verify Docker images can be built
