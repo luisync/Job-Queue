@@ -3,8 +3,6 @@ name: CI/CD Pipeline
 on:
   push:
     branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
 
 permissions:
   id-token: write
@@ -20,9 +18,9 @@ jobs:
       postgres:
         image: postgres:15-alpine
         env:
-          POSTGRES_USER: ${POSTGRES_USER:-postgres}
-          POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-          POSTGRES_DB: ${POSTGRES_DB:-jobs-queue}
+          POSTGRES_USER: POSTGRES_USER:-postgres
+          POSTGRES_PASSWORD: POSTGRES_PASSWORD:-postgres
+          POSTGRES_DB: POSTGRES_DB:-jobs-queue
         ports:
           - 5432:5432
         options: >-
