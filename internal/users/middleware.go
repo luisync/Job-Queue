@@ -12,7 +12,7 @@ import (
 type AuthKey struct{}
 
 // Allow for a token maker to be passed whilist maintaining the correct signature of a middleware function.
-func GetAuthMiddlewareFunc(tokenMaker *token.JWTMaker) func(http.Handler) http.Handler {
+func GetAuthMiddlewareFunc(tokenMaker token.TokenMaker) func(http.Handler) http.Handler {
 	// Return the middleware function.
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -31,7 +31,7 @@ func GetAuthMiddlewareFunc(tokenMaker *token.JWTMaker) func(http.Handler) http.H
 }
 
 // Verify that the token was signed by the server and return its claims.
-func verifyClaimsFromAuthHeader(r *http.Request, tokenMaker *token.JWTMaker) (*token.UserClaims, error) {
+func verifyClaimsFromAuthHeader(r *http.Request, tokenMaker token.TokenMaker) (*token.UserClaims, error) {
 	// Get the the token from the authorisation header.
 	authHeader := r.Header.Get("Authorization")
 	if authHeader == "" {

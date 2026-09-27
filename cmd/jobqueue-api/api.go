@@ -42,7 +42,7 @@ func (app *application) mount() http.Handler {
 	if len([]rune(secretKey)) < minSecretKeySize {
 		log.Fatalf("Secret key must be at least %d characters.", minSecretKeySize)
 	}
-	usersHandler := users.NewHandler(app.db, secretKey)
+	usersHandler := users.NewHandlerWithKey(app.db, secretKey)
 	tokenMaker := usersHandler.TokenMaker
 
 	// Routes for jobs
