@@ -91,11 +91,37 @@ resource "aws_security_group" "k8s_sg" {
     }
 }
 
+resource "aws_iam_role" "k3s_ssm" { 
+    name = "k3s-ssm-role"
+
+    assume_role_policy = jsonencode({
+        Version = "2012-10-17"
+        Statement = [{
+            Effect = "Allow"
+            Principal = {
+                Service = "ec2.amazonwas.com"
+            }
+            Action = "sts:AssumeRole"
+        }]
+    })
+}
+
+resource "aws_iam_role_policy_attachment" "k3s_ssm" {
+    role = aws_iamrole.k3s_ssm.name
+    policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+resource "aws_iam_instance_profile" "k3s_ssm" {
+    name = "k3s-ssm-instance-profile"
+    role = aws_iam_role.k3s_ssm.name
+}
+
 resource "aws_instance" "k8s_node" {
     ami = "ami-0aba19e56f3eaec05"
     instance_type = "t3.micro"
     subnet_id = aws_subnet.public.id
     vpc_security_group_ids = [aws_security_group.k8s_sg.id]
+    iam_instance_profile = aws_iam_instance_profile.k3s_ssm.name
 
     user_data = <<-EOF
                 #!/bin/bash
