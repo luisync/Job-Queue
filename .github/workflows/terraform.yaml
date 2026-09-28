@@ -1,17 +1,23 @@
 name: Terraform updates
 
 on:
+  pull_request:
+    paths:
+      - "terraform/**"
+
   push:
-    branches: [ "main" ]
-    paths: [ 'terraform/**' ]
+    branches:
+      - "main"
+    paths:
+      - "terraform/**"
 
 permissions:
   id-token: write
   contents: read
 
 jobs:
-  terraform:
-    name: Terraform plan and apply
+  terraform-plan:
+    name: Terraform plan
     runs-on: ubuntu-latest
 
     steps:
@@ -27,15 +33,62 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: eu-north-1
 
+      - name: Terraform fmt
+        run: terraform fmt -check -recursive
+        working-directory: ./terraform
+
       - name: Terraform init
-        run: terraform init
+        run: terraform init -input=false
+        working-directory: ./terraform
+
+      - name: Terraform validade
+        run: terraform validade
         working-directory: ./terraform
 
       - name: Terraform plan
-        run: terraform plan
+        run: terraform plan -input=false -out=tfplan
         working-directory: ./terraform
 
+      - name: Upload the Terraform plan
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan
+          path: terraform/tfplan
+          retention-days: 1
+  
+  terraform-apply:
+    name: Terrafrom apply
+    needs: terraform-plan
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    environment:
+      name: production
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp.setup-terraform@v3
+        
+      - name: Configure AWS credentials
+        uses: aws/actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: $ {{ secrets.AWS_ROLE_ARN }}
+          aws-region: eu-north-1
+        
+      - name: Terraform init
+        run: terraform init -input=false
+
+      - name: Download Terraform plan
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform-plan
+          path: terraform
+        
       - name: Terraform apply
-        if: github.ref == 'refs/heads/main' # Only run on pushes.
-        run: terraform apply -auto-approve
+        run: terraform apply -input=false tfplan
         working-directory: ./terraform
+        

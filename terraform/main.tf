@@ -99,7 +99,7 @@ resource "aws_iam_role" "k3s_ssm" {
         Statement = [{
             Effect = "Allow"
             Principal = {
-                Service = "ec2.amazonwas.com"
+                Service = "ec2.amazonaws.com"
             }
             Action = "sts:AssumeRole"
         }]
@@ -107,7 +107,7 @@ resource "aws_iam_role" "k3s_ssm" {
 }
 
 resource "aws_iam_role_policy_attachment" "k3s_ssm" {
-    role = aws_iamrole.k3s_ssm.name
+    role = aws_iam_role.k3s_ssm.name
     policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
