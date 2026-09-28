@@ -62,9 +62,6 @@ jobs:
     needs: terraform-plan
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-
-    environment:
-      name: production
     
     steps:
       - name: Checkout code
