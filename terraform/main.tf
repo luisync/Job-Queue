@@ -91,29 +91,12 @@ resource "aws_security_group" "k8s_sg" {
   }
 }
 
-resource "aws_iam_role" "k3s_ssm" {
+data "aws_iam_role" "k3s_ssm" {
   name = "k3s-ssm-role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Effect = "Allow"
-      Principal = {
-        Service = "ec2.amazonaws.com"
-      }
-      Action = "sts:AssumeRole"
-    }]
-  })
 }
 
-resource "aws_iam_role_policy_attachment" "k3s_ssm" {
-  role       = aws_iam_role.k3s_ssm.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
-}
-
-resource "aws_iam_instance_profile" "k3s_ssm" {
+data "aws_iam_instance_profile" "k3s_ssm" {
   name = "k3s-ssm-instance-profile"
-  role = aws_iam_role.k3s_ssm.name
 }
 
 resource "aws_instance" "k8s_node" {
@@ -121,7 +104,7 @@ resource "aws_instance" "k8s_node" {
   instance_type          = "t3.micro"
   subnet_id              = aws_subnet.public.id
   vpc_security_group_ids = [aws_security_group.k8s_sg.id]
-  iam_instance_profile   = aws_iam_instance_profile.k3s_ssm.name
+  iam_instance_profile   = data.aws_iam_instance_profile.k3s_ssm.name
 
   user_data = <<-EOF
                 #!/bin/bash
@@ -138,5 +121,3 @@ output "k8s_public_ip" {
   description = "Public IP of the Kubernetes Server"
   value       = aws_instance.k8s_node.public_ip
 }
-
-# Test comment1
