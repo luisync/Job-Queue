@@ -2,7 +2,7 @@ name: Terraform updates
 
 on:
   workflow_dispatch:
-  
+
   pull_request:
     paths:
       - "terraform/**"
@@ -32,7 +32,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_RESOURCE_ACCESS_ROLE_ARN }}
+          role-to-assume: ${{ github.event_name == 'pull_request' && secrets.AWS_RESOURCE_ACCESS_ROLE_ARN || secrets.AWS_KUBERNETES_MANAGEMENT_ROLE_ARN }}
           aws-region: eu-north-1
 
       - name: Terraform fmt
