@@ -1,0 +1,14 @@
+FROM node:20-slim
+
+ENV NODE_PATH=/usr/local/lib/node_modules
+
+# Commonly used node packages.
+RUN npm install -g \
+    express \
+    axios \
+    lodash \
+    zod \
+    moment \
+    node-fetch
+
+WORKDIR /app
