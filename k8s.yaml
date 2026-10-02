@@ -1,0 +1,319 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: jobqueue-postgres
+type: Opaque
+stringData:
+  POSTGRES_USER: postgres
+  POSTGRES_PASSWORD: postgres
+  POSTGRES_DB: jobs-queue
+  GOOSE_DBSTRING: "host=127.0.0.1 user=postgres password=postgres dbname=jobs-queue sslmode=disable"
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jobqueue-postgres-data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 2Gi
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: postgres
+
+  template:
+    metadata:
+      labels:
+        app: postgres
+
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+
+          ports:
+            - containerPort: 5432
+
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: jobqueue-postgres
+                  key: POSTGRES_USER
+
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: jobqueue-postgres
+                  key: POSTGRES_PASSWORD
+
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: jobqueue-postgres
+                  key: POSTGRES_DB
+
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+            initialDelaySeconds: 5
+            periodSeconds: 5
+
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+            initialDelaySeconds: 15
+            periodSeconds: 10
+
+      volumes:
+        - name: postgres-data
+          persistentVolumeClaim:
+            claimName: jobqueue-postgres-data
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+spec:
+  selector:
+    app: postgres
+
+  ports:
+    - port: 5432
+      targetPort: 5432
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: redis
+
+  template:
+    metadata:
+      labels:
+        app: redis
+
+    spec:
+      containers:
+        - name: redis
+          image: redis:7-alpine
+
+          ports:
+            - containerPort: 6379
+
+          readinessProbe:
+            exec:
+              command:
+                - redis-cli
+                - ping
+            initialDelaySeconds: 3
+            periodSeconds: 5
+
+          livenessProbe:
+            exec:
+              command:
+                - redis-cli
+                - ping
+            initialDelaySeconds: 10
+            periodSeconds: 10
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+spec:
+  selector:
+    app: redis
+
+  ports:
+    - port: 6379
+      targetPort: 6379
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jobqueue-grpc
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: jobqueue-grpc
+
+  template:
+    metadata:
+      labels:
+        app: jobqueue-grpc
+
+    spec:
+      containers:
+        - name: grpc
+          image: jobqueue-grpc:placeholder
+
+          ports:
+            - containerPort: 9091
+
+          env:
+            - name: GRPC_SERVER_ADDR
+              value: "0.0.0.0:9091"
+
+            - name: GOOSE_DBSTRING
+              valueFrom:
+                secretKeyRef:
+                  name: jobqueue-postgres
+                  key: GOOSE_DBSTRING
+
+          readinessProbe:
+            tcpSocket:
+              port: 9091
+            initialDelaySeconds: 5
+            periodSeconds: 5
+
+          livenessProbe:
+            tcpSocket:
+              port: 9091
+            initialDelaySeconds: 15
+            periodSeconds: 10
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jobqueue-grpc
+spec:
+  selector:
+    app: jobqueue-grpc
+
+  ports:
+    - port: 9091
+      targetPort: 9091
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jobqueue-api
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: jobqueue-api
+
+  template:
+    metadata:
+      labels:
+        app: jobqueue-api
+
+    spec:
+      containers:
+        - name: api
+          image: jobqueue-api:placeholder
+
+          ports:
+            - containerPort: 8080
+
+          env:
+            - name: HTTP_SERVER_ADDR
+              value: "0.0.0.0:8080"
+
+            - name: GRPC_SERVER_ADDR
+              value: "jobqueue-grpc:9091"
+
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jobqueue-api
+spec:
+  selector:
+    app: jobqueue-api
+
+  ports:
+    - port: 8080
+      targetPort: 8080
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jobqueue-worker
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: jobqueue-worker
+
+  template:
+    metadata:
+      labels:
+        app: jobqueue-worker
+
+    spec:
+      containers:
+        - name: worker
+          image: jobqueue-worker:placeholder
+
+          env:
+            - name: REDIS_SERVER_ADDR
+              value: "redis:6379"
+
+            - name: REDIS_PASSWORD
+              value: ""
+
+            - name: GOOSE_DBSTRING
+              valueFrom:
+                secretKeyRef:
+                  name: jobqueue-postgres
+                  key: GOOSE_DBSTRING
+
+            - name: STREAM_KEY
+              value: "jobs:stream"
+
+            - name: GROUP_NAME
+              value: "worker-group"

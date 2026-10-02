@@ -104,6 +104,16 @@ jobs:
           tags: | 
             ${{ secrets.DOCKERHUB_USERNAME }}/jobqueue-worker:${{ github.sha }}
             ${{ secrets.DOCKERHUB_USERNAME }}/jobqueue-worker:latest
+
+      - name: Build and push migration image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.migrate
+          push: ${{ github.ref == 'refs/heads/main' }}
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/jobqueue-migrate:${{ github.sha }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/jobqueue-migrate:latest
       
       # Build prewarmed images.
       - name: Build and push prewarmed Python image
@@ -125,7 +135,6 @@ jobs:
           tags: | 
             ${{ secrets.DOCKERHUB_USERNAME }}/jobqueue-node-runner:${{ github.sha }}
             ${{ secrets.DOCKERHUB_USERNAME }}/jobqueue-node-runner:latest
-
   # Deploy images to Kubernetes instance running on the cloud.
   deploy:
     permissions:
@@ -152,11 +161,36 @@ jobs:
           echo "${{ secrets.KUBECONFIG_DATA }}" | base64 -d > ~/.kube/config
           chmod 600 ~/.kube/config
 
+      - name: Apply Kubernetes configuration
+        run: kubectl apply -f k8.yaml
 
-      - name: Send Docker images to Kubernetes Cluster
+      - name: Wait for postgresql
+        run: kubectl wait --from=condition=complete deployment\postgres --timeout=180s
+      - name: Run database migrations
         run: |
-          kubectl set image deployment/jobqueue-api api=${{ secrets.DOCKERHUB_USERNAME }}/jobqueue-api:${{ github.sha }}
-          kubectl set image deployment/jobqueue-grpc grpc=${{ secrets.DOCKERHUB_USERNAME }}/jobqueue-grpc:${{ github.sha }}
-          kubectl set image deployment/jobqueue-worker worker=${{ secrets.DOCKERHUB_USERNAME }}/jobqueue-worker:${{ github.sha }}
-          kubectl rollout status deployment/jobqueue-api
+          kubectl delete job jobqueue-migration --ignore-not-found
+
+          kubectl create job jobqueue-migration \
+            --image=${{ secrets.DOCKERHUB_USERNAME }}/jobqueue-migrate:${{ github.sha }}
+
+          kubectl set env job/jobqueue-migration --from=secret/jobqueue-postgres
+
+          kubectl wait --for=condition=complete job/jobqueue-migration --timeout=180s
+
+      - name: Update Docker images to Kubernetes Cluster
+        run: |
+          kubectl set image deployment/jobqueue-api \
+          api=${{ secrets.DOCKERHUB_USERNAME }}/jobqueue-api:${{ github.sha }}
+
+          kubectl set image deployment/jobqueue-grpc \
+          grpc=${{ secrets.DOCKERHUB_USERNAME }}/jobqueue-grpc:${{ github.sha }}
+
+          kubectl set image deployment/jobqueue-worker \
+          worker=${{ secrets.DOCKERHUB_USERNAME }}/jobqueue-worker:${{ github.sha }}
+
+      - name: Wait for deployments
+        run: |
+          kubectl rollout status deployment/jobqueue-api --timeout-180s
+          kubectl rollout status deployment/jobqueue-grpc --timeout-180s
+          kubectl rollout status deployment/jobqueue-worker --timeout-180s
 
